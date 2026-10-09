@@ -2,15 +2,15 @@ import { test, expect } from '@playwright/test';
 
 async function login(page: import('@playwright/test').Page) {
   await page.goto('/');
-  await page.getByLabel('อีเมล').fill('demo@itembank.local');
-  await page.getByLabel('รหัสผ่าน').fill('demo1234');
+  await page.getByLabel('อีเมล', { exact: true }).fill('demo@itembank.local');
+  await page.getByLabel('รหัสผ่าน', { exact: true }).fill('demo1234');
   await page.getByRole('button', { name: 'เข้าสู่ระบบ' }).click();
 }
 
 test('รหัสผ่านผิดต้องแจ้งเตือน และยังไม่เข้าระบบ', async ({ page }) => {
   await page.goto('/');
-  await page.getByLabel('อีเมล').fill('demo@itembank.local');
-  await page.getByLabel('รหัสผ่าน').fill('wrong');
+  await page.getByLabel('อีเมล', { exact: true }).fill('demo@itembank.local');
+  await page.getByLabel('รหัสผ่าน', { exact: true }).fill('wrong');
   await page.getByRole('button', { name: 'เข้าสู่ระบบ' }).click();
   await expect(page.getByRole('alert')).toContainText('ไม่ถูกต้อง');
   await expect(page.getByRole('navigation')).toHaveCount(0);

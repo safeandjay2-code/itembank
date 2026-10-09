@@ -12,7 +12,7 @@ export class SupabaseRepo implements Repo {
   private sb: SupabaseClient;
 
   constructor(url: string, anonKey: string) {
-    this.sb = createClient(url, anonKey);
+    this.sb = createClient(url, anonKey, { auth: { flowType: 'pkce', detectSessionInUrl: true } });
   }
 
   async getAuth(): Promise<AuthState> {
@@ -30,6 +30,13 @@ export class SupabaseRepo implements Repo {
     const { error } = await this.sb.auth.signInWithPassword({ email, password });
     if (error) throw new Error(error.message === 'Invalid login credentials'
       ? 'อีเมลหรือรหัสผ่านไม่ถูกต้อง' : error.message);
+  }
+
+  async signInWithGoogle() {
+    // กลับมาที่หน้าเดิมของเว็บ (รองรับการโฮสต์ในโฟลเดอร์ย่อย เช่น GitHub Pages)
+    const redirectTo = window.location.origin + window.location.pathname;
+    const { error } = await this.sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo } });
+    if (error) throw new Error(error.message);
   }
 
   async signOut() { await this.sb.auth.signOut(); }

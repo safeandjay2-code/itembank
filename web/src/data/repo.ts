@@ -12,6 +12,8 @@ export interface Repo {
   getAuth(): Promise<AuthState>;
   onAuthChange(cb: (s: AuthState) => void): () => void;
   signIn(email: string, password: string): Promise<void>;
+  /** ล็อกอินด้วยบัญชี Google (เปลี่ยนหน้าไป Google แล้วกลับมา) */
+  signInWithGoogle(): Promise<void>;
   signOut(): Promise<void>;
 
   getProfile(): Promise<Profile | null>;

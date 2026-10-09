@@ -39,6 +39,9 @@ export class MemoryRepo implements Repo {
     this.auth = { signedIn: true, email };
     this.emit();
   }
+  async signInWithGoogle(): Promise<void> {
+    throw new Error('โหมดสาธิตไม่รองรับการล็อกอินด้วย Google');
+  }
   async signOut() { this.auth = { signedIn: false, email: null }; this.emit(); }
 
   async getProfile(): Promise<Profile | null> {

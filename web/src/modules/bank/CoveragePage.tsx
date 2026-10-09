@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { repo } from '../../data';
 import type { CoverageCell, DifficultyLevel, Grade, Indicator } from '../../core/types';
 import { cellState, summarizeCoverage } from './coverage';
+import { href } from '../../ui/router';
 
 export function CoveragePage() {
   const [grades, setGrades] = useState<Grade[]>([]);
@@ -59,7 +60,14 @@ export function CoveragePage() {
                 {levels.map((l) => {
                   const c = byKey.get(`${ind.id}|${l.id}`);
                   const ready = c?.ready ?? 0;
-                  return <td key={l.id} className={`cell ${cellState(ready, target)}`}>{ready}</td>;
+                  const pending = (c?.draft ?? 0) + (c?.needsFix ?? 0);
+                  return (
+                    <td key={l.id} className={`cell ${cellState(ready, target)}`}>
+                      <a href={href('/items', { grade: ind.gradeId, ind: ind.id, d: l.id })}
+                         aria-label={`${ind.code} ${l.nameTh}: พร้อมใช้ ${ready} ข้อ`}>{ready}</a>
+                      {pending > 0 && <small className="pending" title="ร่าง/ต้องแก้">+{pending}</small>}
+                    </td>
+                  );
                 })}
               </tr>
             ))}
@@ -70,6 +78,7 @@ export function CoveragePage() {
         <span><i style={{ background: 'var(--ok-bg)' }} />ครบเป้า</span>
         <span><i style={{ background: 'var(--low-bg)' }} />ยังไม่ครบ</span>
         <span><i style={{ background: 'var(--none-bg)' }} />ยังไม่มีข้อ</span>
+        <span>+n = ข้อร่าง/ต้องแก้ ที่ยังไม่นับ · กดตัวเลขเพื่อดูรายการข้อ</span>
       </div>
     </>
   );

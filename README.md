@@ -10,6 +10,8 @@
 | `supabase/seed/` | ข้อมูลเริ่มต้น (`S001` สร้างจาก `data/` ด้วย `node scripts/build-seed.mjs`), ข้อหุ่น `S900` |
 | `tests/db/` | ทดสอบฐานข้อมูลบน PostgreSQL จำลอง Supabase: `bash tests/db/run.sh` |
 | `web/` | หน้าเว็บ (React + TypeScript + Vite) แยกโมดูลใน `src/modules/*` คุยกับข้อมูลผ่าน `src/data/repo.ts` เท่านั้น |
+| `web/src/modules/bank/figure/` | ตัววาดรูปจากข้อกำหนด (SVG ตามสัดส่วนจริง) — เพิ่มชนิดรูป: `spec.ts` + `layout.ts` + `forms.ts` + `samples.ts` |
+| `supabase/bundle/` | ไฟล์รวมสำหรับวางใน SQL Editor ของ Supabase ทีละเฟส |
 
 ## คำสั่ง (ใน `web/`)
 - `npm run test:unit` ทดสอบตรรกะ · `npm run test:e2e` ทดสอบหน้าเว็บโหมดสาธิต (desktop + มือถือ)

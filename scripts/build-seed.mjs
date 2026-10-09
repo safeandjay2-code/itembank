@@ -30,7 +30,7 @@ for (const t of levels.item_types) {
 
 // ตั้งค่า
 for (const s of settings) {
-  out.push(`insert into public.app_settings(key,value,description_th) values (${q(s.key)},${j(s.value)},${q(s.description_th)});`);
+  out.push(`insert into public.app_settings(key,value,description_th) values (${q(s.key)},${j(s.value)},${q(s.description_th)}) on conflict (key) do nothing;`);
 }
 
 // แบบกระดาษคำตอบรุ่นแรก (รายละเอียดตำแหน่งกำหนดในเฟส 4)

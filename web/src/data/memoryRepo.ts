@@ -1,10 +1,15 @@
 // ข้อมูลจำลองในหน่วยความจำ — ใช้สำหรับโหมดสาธิตและการทดสอบอัตโนมัติ (ไม่ต้องต่อเซิร์ฟเวอร์)
-// ใช้ข้อมูลหลักสูตรชุดเดียวกับ seed ของฐานข้อมูลจริง
+// ใช้ข้อมูลหลักสูตรชุดเดียวกับ seed ของฐานข้อมูลจริง และใช้กฎคลังชุดเดียวกับหน้าจอ (modules/bank/rules.ts)
+// พฤติกรรมเลียนแบบ migration 0005 (ฐานข้อมูลจริงมีชุดทดสอบของตัวเองใน tests/db)
 import curriculum from '../../../data/curriculum/math_2560_terminal_p4_p6.json';
 import levels from '../../../data/levels.json';
 import settingsList from '../../../data/settings.default.json';
 import type { Repo, AuthState } from './repo';
-import type { CoverageCell, DifficultyLevel, Grade, Indicator, Profile, Settings } from '../core/types';
+import type {
+  BankExport, CognitiveLevel, CoverageCell, DifficultyLevel, Grade, ImportReport, Indicator, ItemAnswer, ItemContent,
+  ItemDetail, ItemEvent, ItemFilter, ItemPage, ItemStatus, ItemSummary, ItemVersion, Profile, QaReport, SaveItemInput, Settings,
+} from '../core/types';
+import { classifyEdit, statusAfterSave, statusChangeBlocked } from '../modules/bank/rules';
 
 export const DEMO_EMAIL = 'demo@itembank.local';
 export const DEMO_PASSWORD = 'demo1234';
@@ -22,14 +27,58 @@ export function buildIndicators(): Indicator[] {
   });
 }
 
+interface MemItem {
+  id: string; itemCode: string; subjectId: string; indicatorId: string; itemType: string;
+  cognitiveLevel: number; estDifficulty: number; currentDifficulty: number; status: ItemStatus;
+  currentVersion: number; noShuffle: boolean; isSample: boolean; tags: string[]; subtopic: string | null;
+  createdAt: string; updatedAt: string;
+  versions: ItemVersion[]; events: ItemEvent[]; stats: Array<{ version: number; n: number; nCorrect: number; r: number | null }>;
+}
+
+const clone = <T,>(v: T): T => structuredClone(v);
+const now = () => new Date().toISOString();
+
 export class MemoryRepo implements Repo {
   readonly mode = 'memory' as const;
   private auth: AuthState = { signedIn: false, email: null };
   private listeners = new Set<(s: AuthState) => void>();
   private indicators = buildIndicators();
-  /** จำนวนข้อหุ่นต่อช่อง (ตัวชี้วัด × ระดับ) — เหมือน seed S900 */
-  constructor(private samplePerCell = 2) {}
+  private items: MemItem[] = [];
+  private seq = 0;
 
+  /** samplePerCell = จำนวนข้อหุ่นต่อช่อง (ตัวชี้วัด × ระดับ) — เหมือน seed S900 */
+  constructor(samplePerCell = 2) {
+    for (const ind of this.indicators)
+      for (const d of levels.difficulty)
+        for (let k = 1; k <= samplePerCell; k++) {
+          this.items.push(this.makeItem({
+            indicatorId: ind.id, cognitiveLevel: 1 + (k % 4), est: d.id, status: 'reviewed', isSample: true,
+            content: { stem: `ข้อทดสอบ ${ind.code} ระดับ${d.name_th} #${String(k).padStart(2, '0')}`,
+              options: ['ตัวเลือก 1', 'ตัวเลือก 2', 'ตัวเลือก 3', 'ตัวเลือก 4'], figure: null,
+              explanation: 'ข้อหุ่นสำหรับทดสอบระบบ', distractor_rationale: [null, null, null, null] },
+            answer: { choice: 1 + ((ind.sort + d.id + k) % 4) }, qa: null,
+          }));
+        }
+  }
+
+  private makeItem(a: { indicatorId: string; cognitiveLevel: number; est: number; status: ItemStatus; isSample: boolean;
+    content: ItemContent; answer: ItemAnswer; qa: QaReport | null; noShuffle?: boolean; tags?: string[]; subtopic?: string | null;
+    note?: string | null; code?: string }): MemItem {
+    const t = now();
+    this.seq += 1;
+    const itemCode = a.code ?? `M-${String(this.seq).padStart(6, '0')}`;
+    return {
+      id: `item-${itemCode}`, itemCode, subjectId: 'MATH', indicatorId: a.indicatorId, itemType: 'mcq4',
+      cognitiveLevel: a.cognitiveLevel, estDifficulty: a.est, currentDifficulty: a.est, status: a.status,
+      currentVersion: 1, noShuffle: a.noShuffle ?? false, isSample: a.isSample, tags: a.tags ?? [], subtopic: a.subtopic ?? null,
+      createdAt: t, updatedAt: t,
+      versions: [{ version: 1, content: clone(a.content), answer: clone(a.answer), qa: a.qa, changeNote: a.note ?? 'สร้างข้อ', createdAt: t }],
+      events: [{ type: 'created', payload: { item_code: itemCode, difficulty: a.est, status: a.status }, at: t }],
+      stats: [],
+    };
+  }
+
+  // ---------- ผู้ใช้ ----------
   async getAuth() { return this.auth; }
   onAuthChange(cb: (s: AuthState) => void) { this.listeners.add(cb); return () => { this.listeners.delete(cb); }; }
   private emit() { this.listeners.forEach((l) => l(this.auth)); }
@@ -47,6 +96,8 @@ export class MemoryRepo implements Repo {
   async getProfile(): Promise<Profile | null> {
     return this.auth.signedIn ? { id: 'demo', displayName: 'ผู้ใช้สาธิต', role: 'owner' } : null;
   }
+
+  // ---------- ข้อมูลอ้างอิง ----------
   async getGrades(): Promise<Grade[]> {
     return curriculum.grades.map((g: any) => ({ id: g.id, nameTh: g.name_th, shortTh: g.short_th, sort: g.sort }));
   }
@@ -54,14 +105,226 @@ export class MemoryRepo implements Repo {
   async getDifficultyLevels(): Promise<DifficultyLevel[]> {
     return levels.difficulty.map((d) => ({ id: d.id, key: d.key, nameTh: d.name_th, pLower: d.p_lower, pUpper: d.p_upper }));
   }
+  async getCognitiveLevels(): Promise<CognitiveLevel[]> {
+    return levels.cognitive.map((c) => ({ id: c.id, key: c.key, nameTh: c.name_th }));
+  }
   async getCoverage(subjectId: string): Promise<CoverageCell[]> {
     const cells: CoverageCell[] = [];
     for (const ind of await this.getIndicators(subjectId))
-      for (const d of levels.difficulty)
-        cells.push({ indicatorId: ind.id, difficultyId: d.id, ready: this.samplePerCell, draft: 0, needsFix: 0 });
+      for (const d of levels.difficulty) {
+        const mine = this.items.filter((i) => i.indicatorId === ind.id && i.currentDifficulty === d.id);
+        cells.push({ indicatorId: ind.id, difficultyId: d.id,
+          ready: mine.filter((i) => i.status === 'reviewed' || i.status === 'active').length,
+          draft: mine.filter((i) => i.status === 'draft').length,
+          needsFix: mine.filter((i) => i.status === 'needs_fix').length });
+      }
     return cells;
   }
   async getSettings(): Promise<Settings> {
     return Object.fromEntries(settingsList.map((s) => [s.key, s.value]));
+  }
+
+  // ---------- คลังข้อสอบ ----------
+  private summary(i: MemItem): ItemSummary {
+    const ind = this.indicators.find((x) => x.id === i.indicatorId)!;
+    const v = i.versions.find((x) => x.version === i.currentVersion)!;
+    const st = i.stats.filter((s) => s.version === i.currentVersion);
+    const n = st.reduce((a, s) => a + s.n, 0);
+    const nc = st.reduce((a, s) => a + s.nCorrect, 0);
+    const rs = st.filter((s) => s.r !== null);
+    const rn = rs.reduce((a, s) => a + s.n, 0);
+    return {
+      id: i.id, itemCode: i.itemCode, indicatorId: i.indicatorId, gradeId: ind.gradeId, itemType: i.itemType,
+      cognitiveLevel: i.cognitiveLevel, estDifficulty: i.estDifficulty, currentDifficulty: i.currentDifficulty,
+      status: i.status, currentVersion: i.currentVersion, noShuffle: i.noShuffle, isSample: i.isSample, tags: [...i.tags],
+      subtopic: i.subtopic, stem: v.content.stem, hasFigure: !!v.content.figure, qaPassed: v.qa ? v.qa.passed : null,
+      n, p: n ? Math.round((nc / n) * 1000) / 1000 : null,
+      r: rn ? Math.round((rs.reduce((a, s) => a + (s.r ?? 0) * s.n, 0) / rn) * 1000) / 1000 : null,
+      updatedAt: i.updatedAt,
+    };
+  }
+
+  async listItems(subjectId: string, f: ItemFilter): Promise<ItemPage> {
+    const size = f.pageSize ?? 30, page = f.page ?? 0;
+    const q = (f.q ?? '').trim().toLowerCase();
+    const ind = new Map(this.indicators.map((i) => [i.id, i]));
+    const all = this.items.map((i) => this.summary(i)).filter((s) =>
+      this.items.find((i) => i.id === s.id)!.subjectId === subjectId
+      && (!f.gradeId || s.gradeId === f.gradeId)
+      && (!f.indicatorId || s.indicatorId === f.indicatorId)
+      && (!f.difficulty || s.currentDifficulty === f.difficulty)
+      && (!f.status || s.status === f.status)
+      && (!f.cognitive || s.cognitiveLevel === f.cognitive)
+      && (f.includeSample || !s.isSample)
+      && (!q || s.stem.toLowerCase().includes(q) || s.itemCode.toLowerCase().includes(q) || (s.subtopic ?? '').toLowerCase().includes(q)));
+    all.sort((a, b) => a.gradeId.localeCompare(b.gradeId) || ind.get(a.indicatorId)!.sort - ind.get(b.indicatorId)!.sort
+      || a.currentDifficulty - b.currentDifficulty || a.itemCode.localeCompare(b.itemCode));
+    return { items: all.slice(page * size, page * size + size), total: all.length };
+  }
+
+  async getItem(id: string): Promise<ItemDetail | null> {
+    const i = this.items.find((x) => x.id === id);
+    if (!i) return null;
+    return { ...this.summary(i), versions: clone(i.versions), events: clone(i.events), usedInExams: 0 };
+  }
+
+  private requireIndicator(id: string) {
+    const ind = this.indicators.find((i) => i.id === id);
+    if (!ind) throw new Error(`ไม่พบตัวชี้วัด ${id || '(ไม่ระบุ)'}`);
+    return ind;
+  }
+
+  private validate(c: ItemContent, a: ItemAnswer) {
+    if (!c.stem?.trim()) throw new Error('ยังไม่มีโจทย์');
+    if (!Array.isArray(c.options) || c.options.length !== 4) throw new Error('ข้อประเภท ปรนัย 4 ตัวเลือก ต้องมีตัวเลือก 4 ตัว');
+    if (!Number.isInteger(a?.choice)) throw new Error('ยังไม่ได้เลือกเฉลย');
+    if (a.choice < 1 || a.choice > 4) throw new Error('เฉลยต้องเป็นตัวเลือก 1–4');
+  }
+
+  async saveItem(input: SaveItemInput): Promise<string> {
+    const d = input.draft;
+    this.requireIndicator(d.indicatorId);
+    this.validate(d.content, d.answer);
+    if (input.mode === 'new') {
+      const it = this.makeItem({ indicatorId: d.indicatorId, cognitiveLevel: d.cognitiveLevel, est: d.estDifficulty,
+        status: 'draft', isSample: false, content: d.content, answer: d.answer, qa: clone(input.qa),
+        noShuffle: d.noShuffle, tags: d.tags, subtopic: d.subtopic, note: input.changeNote });
+      this.items.push(it);
+      return it.id;
+    }
+    const it = this.items.find((x) => x.id === input.id);
+    if (!it) throw new Error('ไม่พบข้อสอบที่จะแก้ไข');
+    const cur = it.versions.find((v) => v.version === it.currentVersion)!;
+    const t = now();
+    const prevStatus = it.status;
+    if (input.mode === 'minor') {
+      const cls = classifyEdit(cur.content, cur.answer, d.content, d.answer);
+      if (!cls.minorAllowed) throw new Error(`การแก้ไขนี้ต้องขึ้นเวอร์ชันใหม่: ${cls.majorReasons.join(', ')}`);
+      cur.content = clone(d.content);
+      cur.qa = clone(input.qa);
+      it.events.push({ type: 'version_edited', payload: { version: it.currentVersion, note: input.changeNote ?? null }, at: t });
+    } else if (input.mode === 'major') {
+      it.versions.push({ version: it.currentVersion + 1, content: clone(d.content), answer: clone(d.answer), qa: clone(input.qa),
+        changeNote: input.changeNote ?? null, createdAt: t });
+      it.events.push({ type: 'version_changed', payload: { from: it.currentVersion, to: it.currentVersion + 1 }, at: t });
+      it.currentVersion += 1;
+    } else throw new Error(`โหมดบันทึกไม่ถูกต้อง: ${input.mode}`);
+    const meta = { indicator_id: d.indicatorId, cognitive_level: d.cognitiveLevel, est_difficulty: d.estDifficulty,
+      no_shuffle: d.noShuffle, subtopic: d.subtopic };
+    const old = { indicator_id: it.indicatorId, cognitive_level: it.cognitiveLevel, est_difficulty: it.estDifficulty,
+      no_shuffle: it.noShuffle, subtopic: it.subtopic };
+    if (JSON.stringify(meta) !== JSON.stringify(old)) it.events.push({ type: 'meta_changed', payload: { from: old, to: meta }, at: t });
+    Object.assign(it, { indicatorId: d.indicatorId, cognitiveLevel: d.cognitiveLevel, estDifficulty: d.estDifficulty,
+      noShuffle: d.noShuffle, tags: [...d.tags], subtopic: d.subtopic, updatedAt: t });
+    if (!it.stats.length) {
+      if (it.currentDifficulty !== d.estDifficulty)
+        it.events.push({ type: 'difficulty_changed', payload: { from: it.currentDifficulty, to: d.estDifficulty }, at: t });
+      it.currentDifficulty = d.estDifficulty;
+    }
+    const next = statusAfterSave(prevStatus, input.mode, input.qa.passed);
+    if (next !== prevStatus) {
+      it.events.push({ type: 'status_changed', payload: { from: prevStatus, to: next }, at: t });
+      it.status = next;
+    }
+    return it.id;
+  }
+
+  async setItemStatus(id: string, status: ItemStatus, note?: string) {
+    const it = this.items.find((x) => x.id === id);
+    if (!it) throw new Error('ไม่พบข้อสอบ');
+    const v = it.versions.find((x) => x.version === it.currentVersion)!;
+    const blocked = it.isSample ? null : statusChangeBlocked(status, v.qa ? v.qa.passed : null);
+    if (blocked && status !== it.status) throw new Error(`ข้อ ${it.itemCode} ยังไม่ผ่านการตรวจอัตโนมัติ จึงตั้งเป็น "ตรวจแล้ว/ใช้งาน" ไม่ได้`);
+    const t = now();
+    if (status !== it.status) it.events.push({ type: 'status_changed', payload: { from: it.status, to: status }, at: t });
+    if (note?.trim()) it.events.push({ type: 'note', payload: { text: note, status }, at: t });
+    it.status = status;
+    it.updatedAt = t;
+  }
+
+  async deleteItem(id: string) {
+    const it = this.items.find((x) => x.id === id);
+    if (!it) throw new Error('ไม่พบข้อสอบ');
+    if (it.status !== 'draft') throw new Error('ลบได้เฉพาะข้อที่เป็นร่าง ข้ออื่นให้เปลี่ยนเป็น "เลิกใช้"');
+    if (it.stats.length) throw new Error('ข้อนี้มีสถิติแล้ว ลบไม่ได้');
+    this.items = this.items.filter((x) => x.id !== id);
+  }
+
+  async exportBank(subjectId: string, includeSamples: boolean): Promise<BankExport> {
+    const ind = new Map(this.indicators.map((i) => [i.id, i]));
+    const ck = new Map(levels.cognitive.map((c) => [c.id, c.key]));
+    const dk = new Map(levels.difficulty.map((d) => [d.id, d.key]));
+    const items = this.items.filter((i) => i.subjectId === subjectId && (includeSamples || !i.isSample))
+      .sort((a, b) => a.itemCode.localeCompare(b.itemCode))
+      .map((i) => ({
+        item_code: i.itemCode, subject_id: i.subjectId, indicator_id: i.indicatorId, indicator_code: ind.get(i.indicatorId)!.code,
+        item_type: i.itemType, cognitive_level: ck.get(i.cognitiveLevel), est_difficulty: dk.get(i.estDifficulty),
+        current_difficulty: dk.get(i.currentDifficulty), status: i.status, current_version: i.currentVersion,
+        no_shuffle: i.noShuffle, is_sample: i.isSample, tags: [...i.tags], subtopic: i.subtopic, created_at: i.createdAt,
+        versions: i.versions.map((v) => ({ version: v.version, content: clone(v.content), answer: clone(v.answer), qa: clone(v.qa),
+          change_note: v.changeNote, created_at: v.createdAt })),
+        stat_rounds: i.stats.map((s) => ({ version: s.version, n: s.n, n_correct: s.nCorrect, r: s.r })),
+        events: i.events.map((e) => ({ type: e.type, payload: clone(e.payload), at: e.at })),
+      }));
+    return { format: 'itembank.bank.v1', exported_at: now(), subject_id: subjectId, item_count: items.length, items };
+  }
+
+  private levelId(kind: 'cognitive' | 'difficulty', v: unknown): number {
+    const list = kind === 'cognitive' ? levels.cognitive : levels.difficulty;
+    const hit = list.find((l) => l.id === v || l.key === v || l.name_th === v);
+    if (!hit) throw new Error(`ไม่รู้จัก${kind === 'cognitive' ? 'ระดับการคิด' : 'ระดับความยาก'}: ${String(v ?? '(ไม่ระบุ)')}`);
+    return hit.id;
+  }
+
+  async importBank(data: unknown, dryRun: boolean): Promise<ImportReport> {
+    const doc = data as any;
+    if (doc?.format !== 'itembank.bank.v1') throw new Error('รูปแบบไฟล์ไม่ถูกต้อง (ต้องเป็นไฟล์สำรองคลัง itembank.bank.v1)');
+    if (!Array.isArray(doc.items)) throw new Error('ไฟล์ไม่มีรายการข้อสอบ (items)');
+    const report: ImportReport = { dryRun, inserted: 0, skipped: [], errors: [] };
+    const backupItems = this.items.slice();
+    const backupSeq = this.seq;
+    doc.items.forEach((it: any, k: number) => {
+      const index = k + 1;
+      const code: string | null = it?.item_code?.trim() || null;
+      try {
+        if (code && this.items.some((x) => x.itemCode === code)) { report.skipped.push({ index, itemCode: code, reason: 'มีรหัสนี้ในคลังแล้ว' }); return; }
+        const ind = this.indicators.find((i) => i.id === it.indicator_id)
+          ?? (it.indicator_id ? undefined : this.indicators.find((i) => i.code === it.indicator_code));
+        if (!ind) throw new Error(`ไม่พบตัวชี้วัด ${it.indicator_id ?? it.indicator_code ?? '(ไม่ระบุ)'}`);
+        const cog = this.levelId('cognitive', it.cognitive_level), est = this.levelId('difficulty', it.est_difficulty);
+        const versions: any[] = Array.isArray(it.versions) && it.versions.length ? it.versions
+          : [{ version: 1, content: it.content, answer: it.answer, qa: it.qa ?? null }];
+        if (code) {
+          if (!/^M-\d{6}$/.test(code)) throw new Error(`รหัสข้อ ${code} ไม่ตรงรูปแบบ M-000000`);
+          versions.forEach((v) => this.validate(v.content, v.answer));
+          const item = this.makeItem({ indicatorId: ind.id, cognitiveLevel: cog, est, status: it.status ?? 'draft', isSample: !!it.is_sample,
+            content: versions[0].content, answer: versions[0].answer, qa: versions[0].qa ?? null, noShuffle: !!it.no_shuffle,
+            tags: it.tags ?? [], subtopic: it.subtopic ?? null, code });
+          item.versions = versions.map((v) => ({ version: v.version, content: clone(v.content), answer: clone(v.answer), qa: v.qa ?? null,
+            changeNote: v.change_note ?? null, createdAt: v.created_at ?? now() }));
+          item.currentVersion = it.current_version ?? Math.max(...versions.map((v) => v.version));
+          item.currentDifficulty = it.current_difficulty ? this.levelId('difficulty', it.current_difficulty) : est;
+          item.stats = (it.stat_rounds ?? []).map((s: any) => ({ version: s.version, n: s.n, nCorrect: s.n_correct, r: s.r ?? null }));
+          if (Array.isArray(it.events) && it.events.length) item.events = clone(it.events);
+          item.events.push({ type: 'imported', payload: { mode: 'restore' }, at: now() });
+          const num = Number(code.slice(2));
+          if (num > this.seq) this.seq = num;
+          this.items.push(item);
+        } else {
+          const last = versions.slice().sort((a, b) => (b.version ?? 0) - (a.version ?? 0))[0];
+          this.validate(last.content, last.answer);
+          const item = this.makeItem({ indicatorId: ind.id, cognitiveLevel: cog, est, status: 'draft', isSample: false,
+            content: last.content, answer: last.answer, qa: last.qa ?? null, noShuffle: !!it.no_shuffle,
+            tags: it.tags ?? [], subtopic: it.subtopic ?? null, note: 'นำเข้าจากไฟล์' });
+          item.events.push({ type: 'imported', payload: { mode: 'new' }, at: now() });
+          this.items.push(item);
+        }
+        report.inserted += 1;
+      } catch (e) {
+        report.errors.push({ index, itemCode: code, message: (e as Error).message });
+      }
+    });
+    if (dryRun) { this.items = backupItems; this.seq = backupSeq; }
+    return report;
   }
 }

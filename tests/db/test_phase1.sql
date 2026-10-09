@@ -20,7 +20,7 @@ select pg_temp.ok((select string_agg(key, ',' order by id) from difficulty_level
 select pg_temp.ok((select count(*) from cognitive_levels) = 4, 'ระดับการคิด 4 ระดับ');
 select pg_temp.ok((select (value)::int from app_settings where key='bank.items_per_level_target') = 20, 'ตั้งค่าเป้า 20 ข้อต่อระดับ');
 select pg_temp.ok((select value #>> '{}' from app_settings where key='print.page_size') = 'A4', 'ตั้งค่ากระดาษ A4');
-select pg_temp.ok((select count(*) from app_migrations) = 5, 'บันทึก migration ครบ 5 รายการ (0001–0004 + S001)');
+select pg_temp.ok((select count(*) from app_migrations where version in ('0001','0002','0003','0004','S001')) = 5, 'บันทึก migration เฟส 1 ครบ 5 รายการ (0001–0004 + S001)');
 
 -- migration รันซ้ำต้องถูกปฏิเสธ
 do $$ begin

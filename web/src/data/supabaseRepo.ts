@@ -176,7 +176,7 @@ export class SupabaseRepo implements Repo {
   }
 
   async listExams(subjectId: string): Promise<ExamSummary[]> {
-    const rows = must(await this.sb.from('exams').select('id,title,grade_id,item_count,set_count,student_count,status,created_at')
+    const rows = must(await this.sb.from('exams').select('id,title,grade_id,item_count,set_count,student_count,status,created_at,duration_min')
       .eq('subject_id', subjectId).order('created_at', { ascending: false })) as any[];
     return rows.map(toExamSummary);
   }
@@ -194,11 +194,16 @@ export class SupabaseRepo implements Repo {
     const { error } = await this.sb.rpc('exam_delete', { p_exam: id });
     if (error) throw new Error(error.message);
   }
+
+  async updateExamMeta(id: string, title: string, durationMin: number): Promise<void> {
+    const { error } = await this.sb.rpc('exam_update_meta', { p_exam: id, p_title: title, p_duration_min: durationMin });
+    if (error) throw new Error(error.message);
+  }
 }
 
 function toExamSummary(e: any): ExamSummary {
   return { id: e.id, title: e.title, gradeId: e.grade_id, itemCount: e.item_count, setCount: e.set_count,
-    studentCount: e.student_count, status: e.status, createdAt: e.created_at };
+    studentCount: e.student_count, status: e.status, createdAt: e.created_at, durationMin: e.duration_min ?? null };
 }
 
 /** แปลงผลของ exam_get (JSON จากฐานข้อมูล) — ใช้ร่วมกับชุดทดสอบ */
@@ -215,6 +220,7 @@ export function toExamDetail(d: any): ExamDetail {
       position: e.position, itemId: e.item_id, optionOrder: e.option_order, key: e.key })) })),
     seats: (d.seats ?? []).map((x: any) => ({ seatNo: x.seat_no, setNo: x.set_no })),
     hasResponses: !!d.has_responses,
+    templateVersion: d.template_version ?? 1,
   };
 }
 

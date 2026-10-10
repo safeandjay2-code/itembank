@@ -47,4 +47,8 @@ export interface Repo {
   getExam(id: string): Promise<ExamDetail | null>;
   /** ลบชุดที่ยังไม่เริ่มสอบและยังไม่มีคำตอบ */
   deleteExam(id: string): Promise<void>;
+
+  // ---------- เอกสารพิมพ์ (เฟส 4) ----------
+  /** แก้ชื่อแบบทดสอบและเวลาสอบ (หัวกระดาษ) */
+  updateExamMeta(id: string, title: string, durationMin: number): Promise<void>;
 }

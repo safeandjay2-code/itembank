@@ -40,7 +40,7 @@ interface MemItem {
 
 interface MemExam {
   id: string; title: string; subjectId: string; gradeId: string; setCount: number; studentCount: number; status: ExamStatus;
-  createdAt: string; rows: ExamCreateInput['rows']; build: ExamCreateInput['build'];
+  createdAt: string; durationMin: number; rows: ExamCreateInput['rows']; build: ExamCreateInput['build'];
   items: Array<{ itemId: string; version: number; basePosition: number; isAnchor: boolean; indicatorId: string; difficulty: number }>;
   sets: ExamCreateInput['sets'];
 }
@@ -364,7 +364,8 @@ export class MemoryRepo implements Repo {
     const id = `exam-${this.examSeq}`;
     this.exams.unshift({
       id, title: input.title.trim(), subjectId: input.subjectId, gradeId: input.gradeId, setCount: input.setCount,
-      studentCount: input.studentCount, status: 'draft', createdAt: now(), rows: clone(input.rows), build: clone(input.build),
+      studentCount: input.studentCount, status: 'draft', createdAt: now(),
+      durationMin: Math.min(300, Math.max(1, Math.ceil(input.items.length * Number(this.settingsMap()['print.minutes_per_item'] ?? 2)))), rows: clone(input.rows), build: clone(input.build),
       items: input.items.map((x) => { const p = byId.get(x.itemId)!;
         return { itemId: x.itemId, version: x.version, basePosition: x.basePosition, isAnchor: p.n >= cfg.anchorMinN, indicatorId: p.indicatorId, difficulty: p.difficulty }; }),
       sets: clone(input.sets).sort((a, b) => a.setNo - b.setNo),
@@ -381,7 +382,7 @@ export class MemoryRepo implements Repo {
 
   private examSummary(e: MemExam): ExamSummary {
     return { id: e.id, title: e.title, gradeId: e.gradeId, itemCount: e.items.length, setCount: e.setCount,
-      studentCount: e.studentCount, status: e.status, createdAt: e.createdAt };
+      studentCount: e.studentCount, status: e.status, createdAt: e.createdAt, durationMin: e.durationMin };
   }
 
   async listExams(subjectId: string): Promise<ExamSummary[]> {
@@ -404,6 +405,7 @@ export class MemoryRepo implements Repo {
         optionOrder: [...x.optionOrder], key: x.optionOrder.indexOf(ans.get(x.itemId)!) + 1 })) })),
       seats: Array.from({ length: e.studentCount }, (_, k) => ({ seatNo: k + 1, setNo: seatSet(k + 1, e.setCount) })),
       hasResponses: false,
+      templateVersion: 1,
     };
   }
 
@@ -412,5 +414,14 @@ export class MemoryRepo implements Repo {
     if (!e) throw new Error('ไม่พบชุดข้อสอบ');
     if (e.status !== 'draft') throw new Error('ลบได้เฉพาะชุดที่ยังไม่เริ่มสอบและยังไม่มีคำตอบ');
     this.exams = this.exams.filter((x) => x.id !== id);
+  }
+
+  async updateExamMeta(id: string, title: string, durationMin: number): Promise<void> {
+    const e = this.exams.find((x) => x.id === id);
+    if (!e) throw new Error('ไม่พบชุดข้อสอบ');
+    if (!title.trim() || title.trim().length > 200) throw new Error('ชื่อแบบทดสอบต้องมี 1–200 ตัวอักษร');
+    if (!Number.isInteger(durationMin) || durationMin < 1 || durationMin > 300) throw new Error('เวลาสอบต้องอยู่ระหว่าง 1–300 นาที');
+    e.title = title.trim();
+    e.durationMin = durationMin;
   }
 }

@@ -16,13 +16,15 @@ export interface AssemblyConfig {
   preferLowN: boolean;
   maxSets: number;
   maxStudents: number;
+  /** จำนวนข้อสูงสุด (ความจุกระดาษคำตอบ) */
+  maxItems: number;
   noShuffleWarnRatio: number;
   similarityWarnRatio: number;
   maxAnswerRun: number;
 }
 
 export const DEFAULT_CONFIG: AssemblyConfig = {
-  anchorMinN: 50, anchorRatio: { min: 0.2, max: 0.3 }, preferLowN: true, maxSets: 10, maxStudents: 60,
+  anchorMinN: 50, anchorRatio: { min: 0.2, max: 0.3 }, preferLowN: true, maxSets: 10, maxStudents: 60, maxItems: 45,
   noShuffleWarnRatio: 0.3, similarityWarnRatio: 0.5, maxAnswerRun: 3,
 };
 
@@ -35,6 +37,7 @@ export function configFromSettings(s: Settings): AssemblyConfig {
     preferLowN: typeof s['assembly.prefer_low_n'] === 'boolean' ? (s['assembly.prefer_low_n'] as boolean) : true,
     maxSets: num('assembly.max_sets', DEFAULT_CONFIG.maxSets),
     maxStudents: num('assembly.max_students', DEFAULT_CONFIG.maxStudents),
+    maxItems: num('assembly.max_items', DEFAULT_CONFIG.maxItems),
     noShuffleWarnRatio: num('assembly.no_shuffle_warn_ratio', DEFAULT_CONFIG.noShuffleWarnRatio),
     similarityWarnRatio: num('assembly.similarity_warn_ratio', DEFAULT_CONFIG.similarityWarnRatio),
     maxAnswerRun: num('assembly.max_answer_run', DEFAULT_CONFIG.maxAnswerRun),
@@ -119,6 +122,7 @@ const isInt = (v: number) => Number.isInteger(v);
 export function checkRequest(req: AssemblyRequest, pool: PoolItem[], cfg: AssemblyConfig, names: Names = plainNames): RequestCheck {
   const errors: Notice[] = [];
   if (!isInt(req.itemCount) || req.itemCount < 1) errors.push({ code: 'item_count', message: 'ระบุจำนวนข้ออย่างน้อย 1 ข้อ' });
+  else if (req.itemCount > cfg.maxItems) errors.push({ code: 'item_count', message: `จำนวนข้อต้องไม่เกิน ${cfg.maxItems} ข้อ (ความจุกระดาษคำตอบ)` });
   if (!isInt(req.setCount) || req.setCount < 1 || req.setCount > cfg.maxSets)
     errors.push({ code: 'set_count', message: `จำนวนชุดต้องอยู่ระหว่าง 1–${cfg.maxSets}` });
   if (!isInt(req.studentCount) || req.studentCount < 1 || req.studentCount > cfg.maxStudents)

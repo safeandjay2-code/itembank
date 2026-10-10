@@ -11,6 +11,7 @@ import { BackupPage } from './modules/bank/BackupPage';
 import { ExamListPage } from './modules/assembly/ExamListPage';
 import { ExamBuilderPage } from './modules/assembly/ExamBuilderPage';
 import { ExamDetailPage } from './modules/assembly/ExamDetailPage';
+import { PrintPage } from './modules/print/PrintPage';
 import { useRoute } from './ui/router';
 
 // เมนูของระบบ — โมดูลที่ยังไม่สร้างแสดงเป็น "เร็ว ๆ นี้" พร้อมเฟส (เพิ่มหน้าใหม่ได้ที่นี่ที่เดียว)
@@ -43,7 +44,8 @@ export function App() {
   const isBankAdmin = profile?.role === 'owner' || profile?.role === 'admin';
   const path = route.path;
   const itemMatch = /^\/items\/(.+)$/.exec(path);
-  const examMatch = /^\/exams\/(.+)$/.exec(path);
+  const printMatch = /^\/exams\/([^/]+)\/print$/.exec(path);
+  const examMatch = /^\/exams\/([^/]+)$/.exec(path);
 
   function page() {
     const needsAdmin = path.startsWith('/items') || path === '/backup';
@@ -55,6 +57,8 @@ export function App() {
     if (path === '/backup') return <BackupPage />;
     if (path === '/exams') return <ExamListPage />;
     if (path === '/exams/new') return <ExamBuilderPage route={route} />;
+    if (printMatch) return <PrintPage key={printMatch[1]} id={printMatch[1]} route={route} />;
+    if (path === '/dev/print-sample' && repo.mode === 'memory') return <PrintPage id={null} route={route} />;
     if (examMatch) return <ExamDetailPage key={examMatch[1]} id={examMatch[1]} route={route} canOpenItems={isBankAdmin} />;
     return <HomePage profile={profile} />;
   }

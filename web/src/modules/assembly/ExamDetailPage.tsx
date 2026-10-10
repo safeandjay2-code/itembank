@@ -47,6 +47,7 @@ export function ExamDetailPage({ id, route, canOpenItems }: { id: string; route:
             {grade} · {exam.itemCount} ข้อ · {exam.setCount} ชุด · นักเรียน {exam.studentCount} คน · <span className={`chip ex-${exam.status}`}>{EXAM_STATUS_TH[exam.status]}</span>
           </p>
         </div>
+        <a className="btn" href={`#/exams/${exam.id}/print`}>เอกสารพิมพ์ (แบบทดสอบ เฉลย กระดาษคำตอบ)</a>
       </div>
       {route.params.get('created') && <div className="notice" role="status">สร้างชุดข้อสอบเรียบร้อย — ฐานข้อมูลตรวจกฎการประกอบชุดผ่านทุกข้อแล้ว</div>}
 

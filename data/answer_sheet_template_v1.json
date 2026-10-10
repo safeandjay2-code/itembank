@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "name_th": "A5 ปรนัย 4 ตัวเลือก รุ่นที่ 1",
+  "units": "mm",
+  "paper": { "size": "A5", "width": 148, "height": 210, "per_a4": 2, "a4_orientation": "landscape" },
+  "corner_marks": {
+    "size": 7,
+    "top_left": [[8, 8], [133, 8], [8, 195], [133, 195]],
+    "order": ["tl", "tr", "bl", "br"]
+  },
+  "qr": {
+    "x": 107, "y": 19, "size": 26, "ecc": "M",
+    "payload": "IB1|<exam_id>|<set_no>|<seat_no>|<template_version>",
+    "payload_note": "ไม่มีเฉลยหรือรหัสข้อสอบ (SPEC §7.2)"
+  },
+  "header": { "x": 18, "y": 18, "width": 86, "height": 32 },
+  "bubbles": {
+    "capacity": 45, "choices": 4, "columns": 3, "rows": 15,
+    "column_x": [18, 59, 100],
+    "number_offset_x": 4,
+    "first_bubble_offset_x": 11, "bubble_pitch_x": 6.6,
+    "first_row_y": 66, "row_pitch_y": 6.6,
+    "radius": 2.3,
+    "label_y": 59,
+    "order": "column-major: ข้อ 1–15 คอลัมน์ 1, 16–30 คอลัมน์ 2, 31–45 คอลัมน์ 3"
+  },
+  "reserved_numeric": { "x": 15, "y": 166, "width": 118, "height": 16, "note": "เว้นไว้สำหรับช่องระบายตัวเลข (ประเภท numeric) ในรุ่นถัดไป" },
+  "scorer": { "x": 15, "y": 184, "width": 118, "height": 8 }
+}

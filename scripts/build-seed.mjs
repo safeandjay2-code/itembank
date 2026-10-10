@@ -34,7 +34,8 @@ for (const s of settings) {
 }
 
 // แบบกระดาษคำตอบรุ่นแรก (รายละเอียดตำแหน่งกำหนดในเฟส 4)
-out.push(`insert into public.answer_sheet_templates(version,name_th,spec) values (1,'A5 ปรนัย 4 ตัวเลือก รุ่นที่ 1','{"paper":"A5","per_a4":2,"choices":4,"corner_markers":true,"qr":true}'::jsonb);`);
+const tpl = JSON.parse(readFileSync(join(root, 'data/answer_sheet_template_v1.json'), 'utf8'));
+out.push(`insert into public.answer_sheet_templates(version,name_th,spec) values (${tpl.version},${q(tpl.name_th)},${j(tpl)}) on conflict (version) do update set spec = excluded.spec, name_th = excluded.name_th;`);
 
 // หลักสูตร
 const s = cur.subject;

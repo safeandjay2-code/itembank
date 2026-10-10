@@ -11,6 +11,7 @@ export function checkCreateInput(x: ExamCreateInput, pool: PoolItem[], cfg: Asse
   if (!Number.isInteger(x.studentCount) || x.studentCount < 1 || x.studentCount > cfg.maxStudents) fail(`จำนวนนักเรียนต้องอยู่ระหว่าง 1–${cfg.maxStudents}`);
   const N = x.items.length;
   if (N < 1) fail('ชุดข้อสอบต้องมีอย่างน้อย 1 ข้อ');
+  if (N > cfg.maxItems) fail(`ชุดข้อสอบมี ${N} ข้อ เกินความจุกระดาษคำตอบ (${cfg.maxItems} ข้อ)`);
   if (new Set(x.items.map((i) => i.itemId)).size !== N) fail('มีข้อซ้ำในชุดข้อสอบ');
   const pos = new Set(x.items.map((i) => i.basePosition).filter((p) => p >= 1 && p <= N));
   if (pos.size !== N) fail(`ลำดับมาตรฐานของข้อต้องเป็น 1–${N} ไม่ซ้ำ`);

@@ -5,6 +5,7 @@
   { "key": "assembly.anchor_ratio", "value": {"min": 0.2, "max": 0.3}, "description_th": "สัดส่วนข้อยึดค่าในแต่ละชุด" },
   { "key": "assembly.max_sets", "value": 10, "description_th": "จำนวนชุดสูงสุดต่อการสร้างข้อสอบ 1 ครั้ง" },
   { "key": "assembly.max_students", "value": 60, "description_th": "จำนวนนักเรียน (เลขที่) สูงสุดต่อชุดข้อสอบ" },
+  { "key": "assembly.max_items", "value": 45, "description_th": "จำนวนข้อสูงสุดต่อชุดข้อสอบ (ต้องไม่เกินความจุกระดาษคำตอบ)" },
   { "key": "assembly.no_shuffle_warn_ratio", "value": 0.3, "description_th": "เตือนเมื่อข้อห้ามสลับตัวเลือกเกินสัดส่วนนี้ของชุด" },
   { "key": "assembly.similarity_warn_ratio", "value": 0.5, "description_th": "เตือนเมื่อ 2 ชุดมีข้อและเฉลยตรงตำแหน่งกันเกินสัดส่วนนี้" },
   { "key": "assembly.max_answer_run", "value": 3, "description_th": "พยายามไม่ให้เฉลยตัวเลือกเดียวกันติดกันเกินจำนวนนี้" },
@@ -16,5 +17,6 @@
   { "key": "print.page_size", "value": "A4", "description_th": "ขนาดกระดาษแบบทดสอบ (ห้าม Letter)" },
   { "key": "print.font", "value": "TH Sarabun New", "description_th": "ฟอนต์เอกสาร" },
   { "key": "print.figure_note", "value": "รูปอาจไม่ได้วาดตามมาตราส่วน ให้ใช้ขนาดที่กำหนดให้", "description_th": "หมายเหตุตัวหนาใต้รูปเรขาคณิต" },
+  { "key": "print.minutes_per_item", "value": 2, "description_th": "เวลาสอบเริ่มต้นต่อข้อ (นาที) ใช้ตั้งเวลาบนหัวกระดาษ แก้ได้รายชุด" },
   { "key": "qa.require_answer_check", "value": false, "description_th": "บังคับให้ทุกข้อมีนิพจน์คำนวณเฉลยซ้ำ (true/false)" }
 ]

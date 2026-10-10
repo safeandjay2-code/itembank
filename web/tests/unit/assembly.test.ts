@@ -52,6 +52,11 @@ function makeRequest(rng: Rng, pool: PoolItem[]): AssemblyRequest {
   });
   // บางครั้งแยกแถวเดียวกันเป็น 2 แถว (ผู้ใช้เลือกซ้ำ) — ต้องรวมกันได้
   if (rows.length && rows[0].count >= 2 && rng() < 0.2) { rows[0].count -= 1; rows.push({ ...rows[0], count: 1 }); }
+  // ไม่เกินความจุกระดาษคำตอบ
+  while (rows.reduce((a, r) => a + r.count, 0) > cfg.maxItems) {
+    const big = rows.reduce((m, r) => (r.count > m.count ? r : m), rows[0]);
+    big.count -= 1;
+  }
   const itemCount = rows.reduce((a, r) => a + r.count, 0);
   return { gradeId: grade.id, itemCount, setCount: 1 + Math.floor(rng() * cfg.maxSets), studentCount: 1 + Math.floor(rng() * cfg.maxStudents), rows };
 }
@@ -163,6 +168,11 @@ describe('เลือกข้อ (§6.2)', () => {
     const p = buildPlan(req([{ indicatorId: ind1.id, difficulty: 1, count: 10 }]), pool, cfg, ordering, 1);
     expect(p.anchorCount).toBe(9);
     expect(p.warnings.map((w) => w.code)).toContain('anchor_excess');
+  });
+  it('จำนวนข้อเกินความจุกระดาษคำตอบ (45) สร้างไม่ได้', () => {
+    const pool = Array.from({ length: 50 }, (_, k) => item(`z${k}`, ind1.id, 1, 0));
+    const c = checkRequest(req([{ indicatorId: ind1.id, difficulty: 1, count: 46 }]), pool, cfg);
+    expect(c.errors.map((e) => e.message)).toContain('จำนวนข้อต้องไม่เกิน 45 ข้อ (ความจุกระดาษคำตอบ)');
   });
   it('ช่วงข้อยึดค่า', () => {
     expect(anchorRange(30, cfg)).toMatchObject({ lo: 6, hi: 9, target: 8 });

@@ -219,6 +219,8 @@ export interface ExamSummary {
   studentCount: number;
   status: ExamStatus;
   createdAt: string;
+  /** เวลาสอบ (นาที) สำหรับหัวกระดาษ — null = ยังไม่กำหนด */
+  durationMin: number | null;
 }
 
 export interface ExamItemDetail {
@@ -243,4 +245,6 @@ export interface ExamDetail extends ExamSummary {
   sets: Array<{ setNo: number; entries: Array<{ position: number; itemId: string; optionOrder: number[]; key: number }> }>;
   seats: Array<{ seatNo: number; setNo: number }>;
   hasResponses: boolean;
+  /** รุ่นแบบกระดาษคำตอบ (QR บอกรุ่นนี้) */
+  templateVersion: number;
 }

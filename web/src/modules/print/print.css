@@ -1,0 +1,75 @@
+/* ---------- เฟส 4: เอกสารพิมพ์ ----------
+   ฟอนต์: ใช้ TH Sarabun New ที่ติดตั้งในเครื่อง ถ้าไม่มี (เช่น มือถือ) ใช้ Sarabun ที่ฝังมากับเว็บ ย่อขนาดให้ใกล้เคียง */
+.pdoc { font-family: 'TH Sarabun New', 'PrintThai', Sarabun, sans-serif; color: #000; background: #fff; font-size: 16pt; line-height: 1.12; }
+.pdoc h1 { font-size: 20pt; margin: 0; }
+.pdoc h2 { font-size: 17pt; margin: 4mm 0 1.5mm; }
+
+/* เศษส่วนซ้อนบน-ล่าง */
+.mx { display: inline-flex; align-items: center; gap: .12em; vertical-align: middle; margin: 0 .08em; }
+.mx-frac { display: inline-flex; flex-direction: column; align-items: center; line-height: .95; font-size: .92em; }
+.mx-num { border-bottom: .06em solid currentColor; padding: 0 .12em; }
+.mx-den { padding: 0 .12em; }
+
+/* แบบทดสอบ */
+.exam-head { display: flex; align-items: flex-start; gap: 4mm; border-bottom: 1pt solid #000; padding-bottom: 1.5mm; }
+.exam-head-text { flex: 1; text-align: center; }
+.exam-head-text p { margin: .6mm 0 0; }
+.set-badge { border: 1.6pt solid #000; border-radius: 2mm; min-width: 24mm; text-align: center; padding: .5mm 2mm 1mm; line-height: 1; }
+.set-badge small { display: block; font-size: 14pt; }
+.set-badge b { display: block; font-size: 34pt; }
+.exam-instr { margin: 1.5mm 0 2.5mm; font-size: 15pt; }
+.exam-cols { column-count: 2; column-gap: 8mm; column-rule: .4pt solid #999; }
+.q { break-inside: avoid; page-break-inside: avoid; margin: 0 0 1.6mm; padding-top: 1.2mm; }  /* เว้นบน: สระ/วรรณยุกต์บรรทัดแรกไม่ล้นข้ามหน้า */
+.q-stem { display: flex; gap: 1.5mm; align-items: baseline; }
+.q-no { font-weight: 700; flex: 0 0 auto; }
+.q-fig { margin: 1mm auto 1mm 6mm; max-width: calc(100% - 6mm); }
+.q-fig svg { width: 100%; height: auto; display: block; }
+.q-fig-error { color: #b00; }
+.q-opts { list-style: none; margin: .3mm 0 0 6mm; padding: 0; }
+.q-opts.grid { display: grid; grid-template-columns: 1fr 1fr; column-gap: 3mm; }
+.q-opt-no { display: inline-block; min-width: 5.5mm; }
+.exam-end { text-align: center; margin-top: 3mm; font-size: 14pt; }
+
+/* เฉลยครู */
+.key-doc > p { margin: 1mm 0 2mm; }
+.key-set { break-inside: avoid; }
+.key-grid { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(5, 1fr); gap: .5mm 3mm; }
+.key-grid small { font-size: 11pt; color: #444; }
+.key-ans { font-weight: 700; }
+.key-seats { display: grid; gap: .8mm; margin: 0; }
+.key-table { border-collapse: collapse; width: 100%; font-size: 13pt; }
+.key-table th, .key-table td { border: .4pt solid #888; padding: .3mm 1.5mm; text-align: center; }
+.key-table td:nth-child(-n+3) { text-align: left; }
+
+/* กระดาษคำตอบ: A5 สองแผ่นต่อ A4 แนวนอน */
+.sheet-page { display: flex; gap: 0; }
+.sheet { width: 148mm; height: 210mm; flex: 0 0 148mm; }
+.sheet + .sheet { border-left: .3pt dashed #bbb; }
+.sheet svg { display: block; width: 148mm; height: 210mm; }
+
+/* ---------- บนจอ: แสดงเป็นกระดาษเสมือน ---------- */
+@media screen {
+  .print-stage { overflow-x: auto; background: #d9d6ce; border-radius: var(--radius); padding: 12px; }
+  .print-stage .pdoc { margin: 0 auto; box-shadow: 0 1px 4px rgba(0,0,0,.25); }
+  .print-stage .exam-doc, .print-stage .key-doc { width: 210mm; min-height: 297mm; padding: 12mm 14mm; }
+  .print-stage .sheets-doc { width: 297mm; background: transparent; box-shadow: none; display: grid; gap: 10px; }
+  .print-stage .sheet-page { background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.25); }
+}
+
+/* ---------- ตอนพิมพ์: ซ่อนทุกอย่างยกเว้นเอกสาร ---------- */
+@page exam { size: A4 portrait; margin: 12mm 14mm 14mm;
+  @bottom-right { content: "หน้า " counter(page) "/" counter(pages); font-family: 'TH Sarabun New', 'PrintThai', sans-serif; font-size: 13pt; } }
+@page key { size: A4 portrait; margin: 12mm 14mm;
+  @bottom-right { content: "เฉลยครู หน้า " counter(page) "/" counter(pages); font-family: 'TH Sarabun New', 'PrintThai', sans-serif; font-size: 12pt; } }
+@page sheets { size: A4 landscape; margin: 0; }
+@media print {
+  html, body { background: #fff !important; }
+  main { padding: 0 !important; margin: 0 !important; max-width: none !important; }
+  .print-stage { padding: 0; background: none; overflow: visible; }
+  .exam-doc { page: exam; }
+  .key-doc { page: key; }
+  .sheets-doc { page: sheets; }
+  .sheet-page { break-after: page; width: 297mm; height: 210mm; overflow: hidden; }
+  .sheet-page:last-child { break-after: auto; }
+  .topbar, .nav, .banner, .no-print { display: none !important; }
+}

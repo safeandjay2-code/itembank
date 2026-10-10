@@ -11,6 +11,8 @@
 | `tests/db/` | ทดสอบฐานข้อมูลบน PostgreSQL จำลอง Supabase: `bash tests/db/run.sh` |
 | `web/` | หน้าเว็บ (React + TypeScript + Vite) แยกโมดูลใน `src/modules/*` คุยกับข้อมูลผ่าน `src/data/repo.ts` เท่านั้น |
 | `web/src/modules/bank/figure/` | ตัววาดรูปจากข้อกำหนด (SVG ตามสัดส่วนจริง) — เพิ่มชนิดรูป: `spec.ts` + `layout.ts` + `forms.ts` + `samples.ts` |
+| `web/src/modules/assembly/` | ประกอบชุดข้อสอบ: `assemble.ts` (เลือก/เรียง/สลับ/สมดุลเฉลย), `validate.ts` (ตัวตรวจกฎ §6 อิสระ), `serverRules.ts` (กฎเดียวกับฐานข้อมูล สำหรับโหมดสาธิต) |
+| `tests/db/fixtures/` | แผนชุดข้อสอบที่สร้างด้วยอัลกอริทึมจริง ให้ฐานข้อมูลทดสอบรับ (สร้างใหม่: `UPDATE_FIXTURE=1 npx vitest run tests/unit/assembly-fixture.test.ts`) |
 | `supabase/bundle/` | ไฟล์รวมสำหรับวางใน SQL Editor ของ Supabase ทีละเฟส |
 
 ## คำสั่ง (ใน `web/`)
@@ -18,6 +20,6 @@
 - `npm run build` สร้างเว็บจริง (ใช้ `.env.production`) · `npm run build:demo` สร้างโหมดสาธิต
 
 ## กติกาการต่อเติม
-1. เปลี่ยนฐานข้อมูล = เพิ่ม migration ใหม่ (`0005_...sql`) ที่ขึ้นต้นด้วย `app_begin_migration`
+1. เปลี่ยนฐานข้อมูล = เพิ่ม migration ใหม่ (`0007_...sql`) ที่ขึ้นต้นด้วย `app_begin_migration`
 2. ค่าเกณฑ์ใหม่ให้เพิ่มใน `data/settings.default.json` + migration/seed ไม่ hardcode ในโค้ด
 3. ทุกโมดูลมีชุดทดสอบ รันทดสอบทั้งหมดผ่านก่อน deploy (GitHub Actions ทำให้อัตโนมัติ)

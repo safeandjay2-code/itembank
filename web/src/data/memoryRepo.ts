@@ -6,10 +6,13 @@ import levels from '../../../data/levels.json';
 import settingsList from '../../../data/settings.default.json';
 import type { Repo, AuthState } from './repo';
 import type {
-  BankExport, CognitiveLevel, CoverageCell, DifficultyLevel, Grade, ImportReport, Indicator, ItemAnswer, ItemContent,
-  ItemDetail, ItemEvent, ItemFilter, ItemPage, ItemStatus, ItemSummary, ItemVersion, Profile, QaReport, SaveItemInput, Settings,
+  BankExport, CognitiveLevel, CoverageCell, DifficultyLevel, ExamCreateInput, ExamDetail, ExamStatus, ExamSummary, Grade,
+  ImportReport, Indicator, ItemAnswer, ItemContent, ItemDetail, ItemEvent, ItemFilter, ItemPage, ItemStatus, ItemSummary,
+  ItemVersion, PoolItem, Profile, QaReport, SaveItemInput, Settings,
 } from '../core/types';
-import { classifyEdit, statusAfterSave, statusChangeBlocked } from '../modules/bank/rules';
+import { ASSEMBLABLE, classifyEdit, statusAfterSave, statusChangeBlocked } from '../modules/bank/rules';
+import { configFromSettings, makeOrdering, seatSet } from '../modules/assembly/assemble';
+import { checkCreateInput } from '../modules/assembly/serverRules';
 
 export const DEMO_EMAIL = 'demo@itembank.local';
 export const DEMO_PASSWORD = 'demo1234';
@@ -35,6 +38,13 @@ interface MemItem {
   versions: ItemVersion[]; events: ItemEvent[]; stats: Array<{ version: number; n: number; nCorrect: number; r: number | null }>;
 }
 
+interface MemExam {
+  id: string; title: string; subjectId: string; gradeId: string; setCount: number; studentCount: number; status: ExamStatus;
+  createdAt: string; rows: ExamCreateInput['rows']; build: ExamCreateInput['build'];
+  items: Array<{ itemId: string; version: number; basePosition: number; isAnchor: boolean; indicatorId: string; difficulty: number }>;
+  sets: ExamCreateInput['sets'];
+}
+
 const clone = <T,>(v: T): T => structuredClone(v);
 const now = () => new Date().toISOString();
 
@@ -44,7 +54,9 @@ export class MemoryRepo implements Repo {
   private listeners = new Set<(s: AuthState) => void>();
   private indicators = buildIndicators();
   private items: MemItem[] = [];
+  private exams: MemExam[] = [];
   private seq = 0;
+  private examSeq = 0;
 
   /** samplePerCell = จำนวนข้อหุ่นต่อช่อง (ตัวชี้วัด × ระดับ) — เหมือน seed S900 */
   constructor(samplePerCell = 2) {
@@ -165,7 +177,7 @@ export class MemoryRepo implements Repo {
   async getItem(id: string): Promise<ItemDetail | null> {
     const i = this.items.find((x) => x.id === id);
     if (!i) return null;
-    return { ...this.summary(i), versions: clone(i.versions), events: clone(i.events), usedInExams: 0 };
+    return { ...this.summary(i), versions: clone(i.versions), events: clone(i.events), usedInExams: this.exams.filter((e) => e.items.some((x) => x.itemId === id)).length };
   }
 
   private requireIndicator(id: string) {
@@ -326,5 +338,79 @@ export class MemoryRepo implements Repo {
     });
     if (dryRun) { this.items = backupItems; this.seq = backupSeq; }
     return report;
+  }
+
+  // ---------- ประกอบชุดข้อสอบ (เลียนแบบ migration 0006) ----------
+  private settingsMap() { return Object.fromEntries(settingsList.map((x) => [x.key, x.value])) as Settings; }
+
+  async getAssemblyPool(subjectId: string): Promise<PoolItem[]> {
+    return this.items.filter((i) => i.subjectId === subjectId && ASSEMBLABLE.includes(i.status) && i.itemType === 'mcq4')
+      .sort((a, b) => a.itemCode.localeCompare(b.itemCode))
+      .map((i) => {
+        const v = i.versions.find((x) => x.version === i.currentVersion)!;
+        return { id: i.id, itemCode: i.itemCode, indicatorId: i.indicatorId, difficulty: i.currentDifficulty, version: i.currentVersion,
+          n: this.summary(i).n, noShuffle: i.noShuffle, answer: v.answer.choice, isSample: i.isSample };
+      });
+  }
+
+  async createExam(input: ExamCreateInput): Promise<string> {
+    if (!this.auth.signedIn) throw new Error('ต้องเข้าสู่ระบบก่อนสร้างชุดข้อสอบ');
+    const cfg = configFromSettings(this.settingsMap());
+    const ordering = makeOrdering(this.indicators, await this.getGrades(), await this.getDifficultyLevels());
+    const pool = await this.getAssemblyPool(input.subjectId);
+    checkCreateInput(input, pool, cfg, ordering);
+    const byId = new Map(pool.map((p) => [p.id, p]));
+    this.examSeq += 1;
+    const id = `exam-${this.examSeq}`;
+    this.exams.unshift({
+      id, title: input.title.trim(), subjectId: input.subjectId, gradeId: input.gradeId, setCount: input.setCount,
+      studentCount: input.studentCount, status: 'draft', createdAt: now(), rows: clone(input.rows), build: clone(input.build),
+      items: input.items.map((x) => { const p = byId.get(x.itemId)!;
+        return { itemId: x.itemId, version: x.version, basePosition: x.basePosition, isAnchor: p.n >= cfg.anchorMinN, indicatorId: p.indicatorId, difficulty: p.difficulty }; }),
+      sets: clone(input.sets).sort((a, b) => a.setNo - b.setNo),
+    });
+    for (const x of input.items) {
+      const it = this.items.find((i) => i.id === x.itemId)!;
+      if (it.status === 'reviewed') {
+        it.events.push({ type: 'status_changed', payload: { from: 'reviewed', to: 'active' }, at: now() });
+        it.status = 'active';
+      }
+    }
+    return id;
+  }
+
+  private examSummary(e: MemExam): ExamSummary {
+    return { id: e.id, title: e.title, gradeId: e.gradeId, itemCount: e.items.length, setCount: e.setCount,
+      studentCount: e.studentCount, status: e.status, createdAt: e.createdAt };
+  }
+
+  async listExams(subjectId: string): Promise<ExamSummary[]> {
+    return this.exams.filter((e) => e.subjectId === subjectId).map((e) => this.examSummary(e));
+  }
+
+  async getExam(id: string): Promise<ExamDetail | null> {
+    const e = this.exams.find((x) => x.id === id);
+    if (!e) return null;
+    const items = e.items.slice().sort((a, b) => a.basePosition - b.basePosition).map((x) => {
+      const it = this.items.find((i) => i.id === x.itemId)!;
+      const v = it.versions.find((vv) => vv.version === x.version)!;
+      return { itemId: x.itemId, itemCode: it.itemCode, version: x.version, basePosition: x.basePosition, indicatorId: x.indicatorId,
+        difficulty: x.difficulty, isAnchor: x.isAnchor, noShuffle: it.noShuffle, n: this.summary(it).n, content: clone(v.content), answer: v.answer.choice };
+    });
+    const ans = new Map(items.map((i) => [i.itemId, i.answer]));
+    return {
+      ...this.examSummary(e), rows: clone(e.rows), build: clone(e.build), items,
+      sets: e.sets.map((s) => ({ setNo: s.setNo, entries: s.entries.map((x, k) => ({ position: k + 1, itemId: x.itemId,
+        optionOrder: [...x.optionOrder], key: x.optionOrder.indexOf(ans.get(x.itemId)!) + 1 })) })),
+      seats: Array.from({ length: e.studentCount }, (_, k) => ({ seatNo: k + 1, setNo: seatSet(k + 1, e.setCount) })),
+      hasResponses: false,
+    };
+  }
+
+  async deleteExam(id: string): Promise<void> {
+    const e = this.exams.find((x) => x.id === id);
+    if (!e) throw new Error('ไม่พบชุดข้อสอบ');
+    if (e.status !== 'draft') throw new Error('ลบได้เฉพาะชุดที่ยังไม่เริ่มสอบและยังไม่มีคำตอบ');
+    this.exams = this.exams.filter((x) => x.id !== id);
   }
 }

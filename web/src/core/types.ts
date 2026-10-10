@@ -171,3 +171,76 @@ export interface BankExport {
   item_count: number;
   items: Array<Record<string, unknown>>;
 }
+
+// ---------- ประกอบชุดข้อสอบ (เฟส 3) ----------
+
+/** ข้อที่สุ่มเข้าชุดได้ — ข้อมูลย่อสำหรับอัลกอริทึม (ไม่มีโจทย์/ตัวเลือก) */
+export interface PoolItem {
+  id: string;
+  itemCode: string;
+  indicatorId: string;
+  difficulty: number;
+  version: number;
+  /** n สะสมของเวอร์ชันปัจจุบัน */
+  n: number;
+  noShuffle: boolean;
+  /** ตำแหน่งเฉลยในลำดับต้นฉบับ 1–4 */
+  answer: number;
+  isSample: boolean;
+}
+
+export interface AssemblyRow { indicatorId: string; difficulty: number; count: number }
+
+export interface Notice { code: string; message: string }
+
+/** สิ่งที่ส่งให้ฐานข้อมูลบันทึก (exam_create) — ฐานข้อมูลตรวจกฎซ้ำทั้งหมด */
+export interface ExamCreateInput {
+  title: string;
+  subjectId: string;
+  gradeId: string;
+  setCount: number;
+  studentCount: number;
+  rows: AssemblyRow[];
+  /** ลำดับมาตรฐาน (ก่อนสลับ) */
+  items: Array<{ itemId: string; version: number; basePosition: number }>;
+  sets: Array<{ setNo: number; entries: Array<{ itemId: string; optionOrder: number[] }> }>;
+  build: { algorithm: string; seed: number; warnings: Notice[]; infos: Notice[]; anchorCount: number; anchorTarget: number };
+}
+
+export type ExamStatus = 'draft' | 'open' | 'closed' | 'expired';
+export const EXAM_STATUS_TH: Record<ExamStatus, string> = { draft: 'สร้างแล้ว', open: 'กำลังสอบ', closed: 'ปิดแล้ว', expired: 'หมดอายุ' };
+
+export interface ExamSummary {
+  id: string;
+  title: string;
+  gradeId: string;
+  itemCount: number;
+  setCount: number;
+  studentCount: number;
+  status: ExamStatus;
+  createdAt: string;
+}
+
+export interface ExamItemDetail {
+  itemId: string;
+  itemCode: string;
+  version: number;
+  basePosition: number;
+  indicatorId: string;
+  difficulty: number;
+  isAnchor: boolean;
+  noShuffle: boolean;
+  n: number;
+  content: ItemContent;
+  answer: number;
+}
+
+export interface ExamDetail extends ExamSummary {
+  rows: AssemblyRow[];
+  build: ExamCreateInput['build'] | null;
+  items: ExamItemDetail[];
+  /** ต่อชุด: ลำดับข้อ + ลำดับตัวเลือก + เฉลยที่แสดง (1–4) */
+  sets: Array<{ setNo: number; entries: Array<{ position: number; itemId: string; optionOrder: number[]; key: number }> }>;
+  seats: Array<{ seatNo: number; setNo: number }>;
+  hasResponses: boolean;
+}

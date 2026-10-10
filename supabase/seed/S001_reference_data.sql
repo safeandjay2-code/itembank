@@ -16,6 +16,10 @@ insert into public.app_settings(key,value,description_th) values ('assembly.pref
 insert into public.app_settings(key,value,description_th) values ('assembly.anchor_min_n','50'::jsonb,'n ขั้นต่ำที่ถือว่าเป็นข้อยึดค่า') on conflict (key) do nothing;
 insert into public.app_settings(key,value,description_th) values ('assembly.anchor_ratio','{"min":0.2,"max":0.3}'::jsonb,'สัดส่วนข้อยึดค่าในแต่ละชุด') on conflict (key) do nothing;
 insert into public.app_settings(key,value,description_th) values ('assembly.max_sets','10'::jsonb,'จำนวนชุดสูงสุดต่อการสร้างข้อสอบ 1 ครั้ง') on conflict (key) do nothing;
+insert into public.app_settings(key,value,description_th) values ('assembly.max_students','60'::jsonb,'จำนวนนักเรียน (เลขที่) สูงสุดต่อชุดข้อสอบ') on conflict (key) do nothing;
+insert into public.app_settings(key,value,description_th) values ('assembly.no_shuffle_warn_ratio','0.3'::jsonb,'เตือนเมื่อข้อห้ามสลับตัวเลือกเกินสัดส่วนนี้ของชุด') on conflict (key) do nothing;
+insert into public.app_settings(key,value,description_th) values ('assembly.similarity_warn_ratio','0.5'::jsonb,'เตือนเมื่อ 2 ชุดมีข้อและเฉลยตรงตำแหน่งกันเกินสัดส่วนนี้') on conflict (key) do nothing;
+insert into public.app_settings(key,value,description_th) values ('assembly.max_answer_run','3'::jsonb,'พยายามไม่ให้เฉลยตัวเลือกเดียวกันติดกันเกินจำนวนนี้') on conflict (key) do nothing;
 insert into public.app_settings(key,value,description_th) values ('calibration.min_n_to_move','50'::jsonb,'n ขั้นต่ำก่อนย้ายระดับความยาก') on conflict (key) do nothing;
 insert into public.app_settings(key,value,description_th) values ('calibration.buffer','0.05'::jsonb,'ช่วงกันชนรอบเส้นแบ่งค่า p') on conflict (key) do nothing;
 insert into public.app_settings(key,value,description_th) values ('calibration.r_flag_below','0.2'::jsonb,'ค่า r ต่ำกว่านี้ ตั้งสถานะ ''ต้องแก้''') on conflict (key) do nothing;

@@ -1,9 +1,10 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { Repo, AuthState } from './repo';
 import type {
-  BankExport, CognitiveLevel, CoverageCell, DifficultyLevel, Grade, ImportReport, Indicator, ItemDetail, ItemFilter,
-  ItemPage, ItemStatus, ItemSummary, ItemVersion, Profile, SaveItemInput, Settings,
+  BankExport, CognitiveLevel, CoverageCell, DifficultyLevel, ExamCreateInput, ExamDetail, ExamSummary, Grade, ImportReport,
+  Indicator, ItemDetail, ItemFilter, ItemPage, ItemStatus, ItemSummary, ItemVersion, PoolItem, Profile, SaveItemInput, Settings,
 } from '../core/types';
+import { toDbPayload } from '../modules/assembly/payload';
 
 function must<T>(res: { data: T | null; error: { message: string } | null }): T {
   if (res.error) throw new Error(res.error.message);
@@ -158,6 +159,63 @@ export class SupabaseRepo implements Repo {
       errors: (r.errors ?? []).map((x: any) => ({ index: x.index, itemCode: x.item_code ?? null, message: x.message })),
     };
   }
+
+  // ---------- ประกอบชุดข้อสอบ ----------
+  async getAssemblyPool(subjectId: string): Promise<PoolItem[]> {
+    // คืนเป็น JSON ก้อนเดียว (ไม่ติดเพดาน 1,000 แถวของ API)
+    const { data, error } = await this.sb.rpc('assembly_pool', { p_subject_id: subjectId });
+    if (error) throw new Error(error.message);
+    return ((data ?? []) as any[]).map((p) => ({ id: p.id, itemCode: p.item_code, indicatorId: p.indicator_id, difficulty: p.difficulty,
+      version: p.version, n: p.n, noShuffle: p.no_shuffle, answer: p.answer, isSample: p.is_sample }));
+  }
+
+  async createExam(input: ExamCreateInput): Promise<string> {
+    const { data, error } = await this.sb.rpc('exam_create', { p: toDbPayload(input) });
+    if (error) throw new Error(error.message);
+    return data as string;
+  }
+
+  async listExams(subjectId: string): Promise<ExamSummary[]> {
+    const rows = must(await this.sb.from('exams').select('id,title,grade_id,item_count,set_count,student_count,status,created_at')
+      .eq('subject_id', subjectId).order('created_at', { ascending: false })) as any[];
+    return rows.map(toExamSummary);
+  }
+
+  async getExam(id: string): Promise<ExamDetail | null> {
+    const { data, error } = await this.sb.rpc('exam_get', { p_exam: id });
+    if (error) {
+      if (/ไม่พบชุดข้อสอบ|invalid input syntax/.test(error.message)) return null;
+      throw new Error(error.message);
+    }
+    return toExamDetail(data);
+  }
+
+  async deleteExam(id: string): Promise<void> {
+    const { error } = await this.sb.rpc('exam_delete', { p_exam: id });
+    if (error) throw new Error(error.message);
+  }
+}
+
+function toExamSummary(e: any): ExamSummary {
+  return { id: e.id, title: e.title, gradeId: e.grade_id, itemCount: e.item_count, setCount: e.set_count,
+    studentCount: e.student_count, status: e.status, createdAt: e.created_at };
+}
+
+/** แปลงผลของ exam_get (JSON จากฐานข้อมูล) — ใช้ร่วมกับชุดทดสอบ */
+export function toExamDetail(d: any): ExamDetail {
+  const b = d.build_params ?? {};
+  return {
+    ...toExamSummary(d),
+    rows: (b.rows ?? []).map((r: any) => ({ indicatorId: r.indicator_id, difficulty: r.difficulty, count: r.count })),
+    build: b.build && Object.keys(b.build).length ? b.build : null,
+    items: (d.items ?? []).map((i: any) => ({ itemId: i.item_id, itemCode: i.item_code, version: i.version, basePosition: i.base_position,
+      indicatorId: i.indicator_id, difficulty: i.difficulty, isAnchor: i.is_anchor, noShuffle: i.no_shuffle, n: i.n,
+      content: i.content, answer: i.answer })),
+    sets: (d.sets ?? []).map((s: any) => ({ setNo: s.set_no, entries: (s.entries ?? []).map((e: any) => ({
+      position: e.position, itemId: e.item_id, optionOrder: e.option_order, key: e.key })) })),
+    seats: (d.seats ?? []).map((x: any) => ({ seatNo: x.seat_no, setNo: x.set_no })),
+    hasResponses: !!d.has_responses,
+  };
 }
 
 function toSummary(r: any): ItemSummary {

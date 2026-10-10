@@ -4,6 +4,7 @@ import { repo } from '../../data';
 import { EXAM_STATUS_TH, type ExamDetail } from '../../core/types';
 import { navigate, type Route } from '../../ui/router';
 import { useRefData } from '../core/useRefData';
+import { expiryText, thDate } from '../analysis/expiry';
 
 const CIRCLE = ['①', '②', '③', '④'];
 
@@ -50,8 +51,16 @@ export function ExamDetailPage({ id, route, canOpenItems }: { id: string; route:
         <div className="actions wrap" style={{ marginTop: 0 }}>
           <a className="btn" href={`#/exams/${exam.id}/print`}>เอกสารพิมพ์ (แบบทดสอบ เฉลย กระดาษคำตอบ)</a>
           {exam.status !== 'closed' && exam.status !== 'expired' && <a className="btn" href={`#/exams/${exam.id}/scan`} data-testid="go-scan">ตรวจกระดาษคำตอบ</a>}
+          {exam.status !== 'draft' && <a className="btn" href={`#/exams/${exam.id}/report`} data-testid="go-report">รายงานผล</a>}
+          {exam.status === 'open' && <a className="btn ghost" href={`#/exams/${exam.id}/close`} data-testid="go-close">ปิดชุดข้อสอบ…</a>}
         </div>
       </div>
+      {exam.status === 'open' && exam.expiresAt && <p className="sub" data-testid="exam-expiry">{expiryText(exam.expiresAt)} (ถ้าไม่ปิดชุดเอง)</p>}
+      {(exam.status === 'closed' || exam.status === 'expired') && (
+        <div className="notice" data-testid="exam-closed">
+          {exam.status === 'expired' ? 'หมดอายุ' : 'ปิดชุด'}เมื่อ {thDate(exam.closedAt)} — ข้อมูลรายเลขที่ถูกลบแล้ว สถิติรายข้อบันทึกเข้าคลัง {exam.closedSummary?.itemsRecorded ?? 0} ข้อ
+        </div>
+      )}
       {route.params.get('created') && <div className="notice" role="status">สร้างชุดข้อสอบเรียบร้อย — ฐานข้อมูลตรวจกฎการประกอบชุดผ่านทุกข้อแล้ว</div>}
 
       {(warnings.length > 0 || infos.length > 0) && (
@@ -134,13 +143,13 @@ export function ExamDetailPage({ id, route, canOpenItems }: { id: string; route:
         </ol>
       </section>
 
-      {exam.status === 'draft' && !exam.hasResponses && (
+      {((exam.status === 'draft' && !exam.hasResponses) || exam.status === 'closed' || exam.status === 'expired') && (
         <div className="actions">
           {!confirmDelete
             ? <button className="btn danger-ghost" onClick={() => setConfirmDelete(true)}>ลบชุดข้อสอบนี้…</button>
             : (
               <div className="confirm" role="alertdialog" aria-label="ยืนยันการลบชุดข้อสอบ">
-                <p>ลบชุดข้อสอบ "{exam.title}" ทั้งหมด? ข้อสอบในคลังไม่ถูกลบ</p>
+                <p>ลบชุดข้อสอบ "{exam.title}" ทั้งหมด? ข้อสอบในคลังไม่ถูกลบ{exam.status !== 'draft' && ' และสถิติที่บันทึกเข้าคลังแล้วยังอยู่'}</p>
                 <div className="actions">
                   <button className="btn danger" disabled={busy} onClick={remove}>ยืนยันลบ</button>
                   <button className="btn ghost" onClick={() => setConfirmDelete(false)}>ยกเลิก</button>

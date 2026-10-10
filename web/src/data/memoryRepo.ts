@@ -8,8 +8,9 @@ import type { Repo, AuthState } from './repo';
 import type {
   BankExport, CognitiveLevel, CoverageCell, DifficultyLevel, ExamCreateInput, ExamDetail, ExamStatus, ExamSummary, Grade,
   ImportReport, Indicator, ItemAnswer, ItemContent, ItemDetail, ItemEvent, ItemFilter, ItemPage, ItemStatus, ItemSummary,
-  ItemVersion, PoolItem, Profile, QaReport, SaveItemInput, ScanAnswer, ScanFlag, ScanResponse, ScanSaveInput, ScanSaveResult, Settings,
+  ItemVersion, PoolItem, Profile, QaReport, SaveItemInput, ScanAnswer, ScanFlag, ScanResponse, ScanSaveInput, ScanSaveResult, Settings, ClosedSummary, RoundStat,
 } from '../core/types';
+import { analysisConfigFromSettings, analyze } from '../modules/analysis/analyze';
 import { answersEqual, detectWrongSet, scanConfigFromSettings, score } from '../modules/scan/grade';
 import { ASSEMBLABLE, classifyEdit, statusAfterSave, statusChangeBlocked } from '../modules/bank/rules';
 import { configFromSettings, makeOrdering, seatSet } from '../modules/assembly/assemble';
@@ -44,6 +45,8 @@ interface MemExam {
   createdAt: string; durationMin: number; rows: ExamCreateInput['rows']; build: ExamCreateInput['build'];
   items: Array<{ itemId: string; version: number; basePosition: number; isAnchor: boolean; indicatorId: string; difficulty: number }>;
   sets: ExamCreateInput['sets'];
+  openedAt: string | null; expiresAt: string | null; closedAt: string | null;
+  closedSummary: ClosedSummary | null; roundStats: RoundStat[];
 }
 
 const clone = <T,>(v: T): T => structuredClone(v);
@@ -372,6 +375,7 @@ export class MemoryRepo implements Repo {
       items: input.items.map((x) => { const p = byId.get(x.itemId)!;
         return { itemId: x.itemId, version: x.version, basePosition: x.basePosition, isAnchor: p.n >= cfg.anchorMinN, indicatorId: p.indicatorId, difficulty: p.difficulty }; }),
       sets: clone(input.sets).sort((a, b) => a.setNo - b.setNo),
+      openedAt: null, expiresAt: null, closedAt: null, closedSummary: null, roundStats: [],
     });
     for (const x of input.items) {
       const it = this.items.find((i) => i.id === x.itemId)!;
@@ -385,10 +389,12 @@ export class MemoryRepo implements Repo {
 
   private examSummary(e: MemExam): ExamSummary {
     return { id: e.id, title: e.title, gradeId: e.gradeId, itemCount: e.items.length, setCount: e.setCount,
-      studentCount: e.studentCount, status: e.status, createdAt: e.createdAt, durationMin: e.durationMin };
+      studentCount: e.studentCount, status: e.status, createdAt: e.createdAt, durationMin: e.durationMin,
+      expiresAt: e.expiresAt, closedAt: e.closedAt };
   }
 
   async listExams(subjectId: string): Promise<ExamSummary[]> {
+    await this.expireDue();
     return this.exams.filter((e) => e.subjectId === subjectId).map((e) => this.examSummary(e));
   }
 
@@ -409,13 +415,14 @@ export class MemoryRepo implements Repo {
       seats: Array.from({ length: e.studentCount }, (_, k) => ({ seatNo: k + 1, setNo: seatSet(k + 1, e.setCount) })),
       hasResponses: (this.scans.get(e.id)?.size ?? 0) > 0,
       templateVersion: 1,
+      openedAt: e.openedAt, closedSummary: clone(e.closedSummary), roundStats: clone(e.roundStats),
     };
   }
 
   async deleteExam(id: string): Promise<void> {
     const e = this.exams.find((x) => x.id === id);
     if (!e) throw new Error('ไม่พบชุดข้อสอบ');
-    if (e.status !== 'draft' || (this.scans.get(id)?.size ?? 0) > 0) throw new Error('ลบได้เฉพาะชุดที่ยังไม่เริ่มสอบและยังไม่มีคำตอบ');
+    if (e.status === 'open' || (this.scans.get(id)?.size ?? 0) > 0) throw new Error('ลบได้เฉพาะชุดที่ยังไม่เริ่มสอบหรือปิดชุดแล้ว — ชุดนี้กำลังสอบ ให้ปิดชุดก่อน');
     this.exams = this.exams.filter((x) => x.id !== id);
   }
 
@@ -467,7 +474,12 @@ export class MemoryRepo implements Repo {
     const r: ScanResponse = { seatNo: input.seatNo, setNo: input.setNo, answers: [...input.answers], score: score(input.answers, keys[input.setNo]),
       flags, source: input.source, scannedAt: now() };
     rows.set(input.seatNo, r);
-    if (e.status === 'draft') e.status = 'open';
+    if (e.status === 'draft') {
+      e.status = 'open';
+      e.openedAt = e.openedAt ?? now();
+      const days = Number(this.settingsMap()['privacy.exam_expiry_days'] ?? 60);
+      e.expiresAt = e.expiresAt ?? new Date(Date.parse(e.openedAt) + days * 86_400_000).toISOString();
+    }
     return { status: old ? 'replaced' : 'saved', response: clone(r) };
   }
 
@@ -490,5 +502,51 @@ export class MemoryRepo implements Repo {
   async listScans(examId: string): Promise<ScanResponse[]> {
     const { rows } = await this.scanContext(examId);
     return [...rows.values()].sort((a, b) => a.seatNo - b.seatNo).map(clone);
+  }
+
+  // ---------- วิเคราะห์และปิดชุด (เลียนแบบ migration 0009) ----------
+  private async finalize(e: MemExam, as: 'closed' | 'expired'): Promise<ClosedSummary> {
+    if (e.status === 'closed' || e.status === 'expired') throw new Error('ชุดข้อสอบนี้ปิดแล้ว');
+    const d = (await this.getExam(e.id))!;
+    const rows = this.scans.get(e.id) ?? new Map<number, ScanResponse>();
+    const settings = this.settingsMap();
+    const a = analyze(d, [...rows.values()], analysisConfigFromSettings(settings));
+    const stats: RoundStat[] = a.items.filter((i) => i.n > 0).map((i) => ({ itemId: i.itemId, version: i.version, n: i.n, nCorrect: i.nCorrect,
+      r: i.r, optionCounts: { ...i.counts } }));
+    for (const st of stats) this.items.find((x) => x.id === st.itemId)?.stats.push({ version: st.version, n: st.n, nCorrect: st.nCorrect, r: st.r });
+    const summary: ClosedSummary = {
+      n: a.summary.n, studentCount: e.studentCount, itemCount: d.itemCount, mean: a.summary.mean, sd: a.summary.sd, median: a.summary.median,
+      min: a.summary.min, max: a.summary.max, meanPercent: a.summary.meanPercent, histogram: a.summary.histogram, passRatio: a.config.passRatio,
+      indicators: a.indicators.map((x) => ({ indicatorId: x.indicatorId, itemCount: x.itemCount, passCount: x.passCount, meanRatio: x.meanRatio })),
+      itemsRecorded: stats.length, responsesDeleted: rows.size, finalizedAs: as, finalizedAt: now(),
+    };
+    this.scans.delete(e.id);
+    e.status = as;
+    e.closedAt = now();
+    e.closedSummary = summary;
+    e.roundStats = stats;
+    return clone(summary);
+  }
+
+  async closeExam(id: string): Promise<ClosedSummary> {
+    const e = this.exams.find((x) => x.id === id);
+    if (!e) throw new Error('ไม่พบชุดข้อสอบ');
+    if (e.status === 'draft') throw new Error('ชุดข้อสอบนี้ยังไม่ได้เริ่มตรวจ — ถ้าไม่ใช้แล้วให้ลบชุดแทน');
+    return this.finalize(e, 'closed');
+  }
+
+  private async expireDue() {
+    const t = Date.now();
+    for (const e of this.exams)
+      if ((e.status === 'draft' || e.status === 'open') && e.expiresAt && Date.parse(e.expiresAt) <= t) await this.finalize(e, 'expired');
+  }
+
+  /** โหมดสาธิต/ทดสอบเท่านั้น: เลื่อนวันเริ่มตรวจ/วันหมดอายุของชุดย้อนหลัง (จำลองเวลาผ่านไป) */
+  debugAgeExam(id: string, days: number) {
+    const e = this.exams.find((x) => x.id === id);
+    if (!e) throw new Error('ไม่พบชุดข้อสอบ');
+    const shift = (v: string | null) => (v ? new Date(Date.parse(v) - days * 86_400_000).toISOString() : v);
+    e.openedAt = shift(e.openedAt);
+    e.expiresAt = shift(e.expiresAt);
   }
 }

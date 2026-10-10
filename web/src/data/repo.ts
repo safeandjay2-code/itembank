@@ -3,7 +3,7 @@
 import type {
   BankExport, CognitiveLevel, CoverageCell, DifficultyLevel, ExamCreateInput, ExamDetail, ExamSummary, Grade, ImportReport,
   Indicator, ItemDetail, ItemFilter, ItemPage, ItemStatus, PoolItem, Profile, SaveItemInput, ScanAnswer, ScanResponse, ScanSaveInput,
-  ScanSaveResult, Settings,
+  ScanSaveResult, Settings, ClosedSummary,
 } from '../core/types';
 
 export interface AuthState {
@@ -44,6 +44,7 @@ export interface Repo {
   getAssemblyPool(subjectId: string): Promise<PoolItem[]>;
   /** บันทึกชุดข้อสอบ (ฐานข้อมูลตรวจกฎ §6 ซ้ำทั้งหมด) คืนค่า id ของชุด */
   createExam(input: ExamCreateInput): Promise<string>;
+  /** รายการชุดข้อสอบ (ก่อนคืนผล ชุดที่ครบกำหนดหมดอายุจะถูกปิดอัตโนมัติ — SPEC §10) */
   listExams(subjectId: string): Promise<ExamSummary[]>;
   getExam(id: string): Promise<ExamDetail | null>;
   /** ลบชุดที่ยังไม่เริ่มสอบและยังไม่มีคำตอบ */
@@ -60,4 +61,8 @@ export interface Repo {
   reviewScan(examId: string, seatNo: number, setNo: number, answers: ScanAnswer[]): Promise<ScanResponse>;
   deleteScan(examId: string, seatNo: number): Promise<void>;
   listScans(examId: string): Promise<ScanResponse[]>;
+
+  // ---------- วิเคราะห์และปิดชุด (เฟส 6) ----------
+  /** ปิดชุด: รวมสถิติรายข้อเข้าคลัง แล้วลบข้อมูลรายเลขที่ทั้งหมด (ย้อนกลับไม่ได้) */
+  closeExam(id: string): Promise<ClosedSummary>;
 }

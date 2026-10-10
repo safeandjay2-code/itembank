@@ -1,0 +1,63 @@
+/* หน้ารายงานผล (เฟส 6) */
+.report-doc .stat-value small { font-size: .9rem; font-weight: 400; color: var(--muted); margin-left: 4px; }
+.report-tabs { flex-wrap: wrap; }
+.report-section { margin-bottom: 16px; }
+.report-section h2 { margin: 0 0 10px; font-size: 1.15rem; }
+.tab-hidden { display: none; }
+
+.bars { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.bars li { display: grid; grid-template-columns: 70px minmax(0, 1fr) 44px; align-items: center; gap: 8px; font-size: .9rem; }
+.bars .bar { height: 14px; border-radius: 4px; background: var(--none-bg); overflow: hidden; }
+.bars .bar span { display: block; height: 100%; background: var(--accent); border-radius: 4px; }
+.bars .num { text-align: right; font-variant-numeric: tabular-nums; }
+
+table.report-table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+table.report-table th, table.report-table td { border-bottom: 1px solid var(--line); padding: 6px 8px; text-align: center; white-space: nowrap; }
+table.report-table th { background: var(--none-bg); font-weight: 600; position: sticky; top: 0; }
+table.report-table td.left, table.report-table th.left { text-align: left; white-space: normal; }
+table.report-table tr.missing td { color: var(--muted); }
+table.report-table td.pass { color: #1b7f3b; }
+table.report-table td.fail { color: var(--danger, #c0392b); font-weight: 600; }
+@media (prefers-color-scheme: dark) { table.report-table td.pass { color: #6fd39a; } }
+
+.item-cards { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.item-card { border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; background: var(--surface); break-inside: avoid; }
+.item-card .item-top { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: baseline; }
+.item-card .metrics { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 6px 0; font-size: .92rem; }
+.item-card .metrics b { font-variant-numeric: tabular-nums; }
+.opt-bars { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 3px; }
+.opt-bars li { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(60px, 1fr) 72px; gap: 8px; align-items: center; font-size: .88rem; }
+.opt-bars .txt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.opt-bars .bar { height: 12px; border-radius: 4px; background: var(--none-bg); overflow: hidden; }
+.opt-bars .bar span { display: block; height: 100%; background: var(--muted); }
+.opt-bars li.key .bar span { background: var(--accent); }
+.opt-bars li.key .txt { font-weight: 600; }
+.opt-bars li.strong .bar span { background: var(--warn); }
+.opt-bars .num { text-align: right; font-variant-numeric: tabular-nums; }
+.item-notes { margin: 8px 0 0; padding-left: 18px; font-size: .88rem; }
+.item-notes li { margin: 2px 0; }
+.chip.r-good { background: var(--ok-bg); }
+.chip.r-ok { background: var(--none-bg); }
+.chip.r-weak, .chip.r-bad { background: var(--low-bg); color: var(--warn); }
+.chip.r-bad { font-weight: 700; }
+.chip.weak { background: var(--low-bg); color: var(--warn); }
+
+.expiry { border-left: 4px solid var(--warn); }
+.close-steps { display: grid; gap: 12px; }
+.close-steps .step { display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 10px; align-items: start; }
+.close-steps .step-no { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: var(--accent-ink); font-weight: 700; }
+.close-facts { margin: 0; padding-left: 18px; }
+.close-facts li { margin: 3px 0; }
+
+@page report { size: A4 portrait; margin: 12mm 12mm 14mm;
+  @bottom-right { content: "หน้า " counter(page) "/" counter(pages); font-family: 'TH Sarabun New', 'Sarabun', sans-serif; font-size: 11pt; } }
+@media print {
+  .report-doc { page: report; font-size: 12pt; }
+  .report-doc .tab-hidden { display: block; }
+  .report-doc .report-section { break-inside: auto; }
+  .report-doc .table-wrap { overflow: visible; border: 0; }
+  .report-doc table.report-table th { position: static; }
+  .report-doc .card, .report-doc .item-card { border-color: #bbb; }
+  .report-doc .cards { grid-template-columns: repeat(5, 1fr); }
+  .report-doc .bars .bar span, .opt-bars .bar span { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}

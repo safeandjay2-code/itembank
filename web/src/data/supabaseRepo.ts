@@ -3,7 +3,7 @@ import type { Repo, AuthState } from './repo';
 import type {
   BankExport, CognitiveLevel, CoverageCell, DifficultyLevel, ExamCreateInput, ExamDetail, ExamSummary, Grade, ImportReport,
   Indicator, ItemDetail, ItemFilter, ItemPage, ItemStatus, ItemSummary, ItemVersion, PoolItem, Profile, SaveItemInput, ScanAnswer, ScanResponse,
-  ScanSaveInput, ScanSaveResult, Settings,
+  ScanSaveInput, ScanSaveResult, Settings, ClosedSummary,
 } from '../core/types';
 import { toDbPayload } from '../modules/assembly/payload';
 
@@ -177,7 +177,9 @@ export class SupabaseRepo implements Repo {
   }
 
   async listExams(subjectId: string): Promise<ExamSummary[]> {
-    const rows = must(await this.sb.from('exams').select('id,title,grade_id,item_count,set_count,student_count,status,created_at,duration_min')
+    // ชุดที่ครบ 60 วันหลังเริ่มตรวจ → รวมสถิติแล้วลบข้อมูลรายเลขที่ (สำรองของ pg_cron — ล้มเหลวก็ยังแสดงรายการได้)
+    await this.sb.rpc('exam_expire_due').then(() => undefined, () => undefined);
+    const rows = must(await this.sb.from('exams').select('id,title,grade_id,item_count,set_count,student_count,status,created_at,duration_min,expires_at,closed_at')
       .eq('subject_id', subjectId).order('created_at', { ascending: false })) as any[];
     return rows.map(toExamSummary);
   }
@@ -226,11 +228,32 @@ export class SupabaseRepo implements Repo {
     if (error) throw new Error(error.message);
     return ((data ?? []) as any[]).map(toScanResponse);
   }
+
+  // ---------- วิเคราะห์และปิดชุด ----------
+  async closeExam(id: string): Promise<ClosedSummary> {
+    const { data, error } = await this.sb.rpc('exam_close', { p_exam: id });
+    if (error) throw new Error(error.message);
+    return toClosedSummary(data);
+  }
 }
 
 function toExamSummary(e: any): ExamSummary {
   return { id: e.id, title: e.title, gradeId: e.grade_id, itemCount: e.item_count, setCount: e.set_count,
-    studentCount: e.student_count, status: e.status, createdAt: e.created_at, durationMin: e.duration_min ?? null };
+    studentCount: e.student_count, status: e.status, createdAt: e.created_at, durationMin: e.duration_min ?? null,
+    expiresAt: e.expires_at ?? null, closedAt: e.closed_at ?? null };
+}
+
+const numOrNull = (v: any) => (v === null || v === undefined ? null : Number(v));
+
+/** แปลง exams.closed_summary (JSON จากฐานข้อมูล) */
+export function toClosedSummary(d: any): ClosedSummary {
+  return {
+    n: d.n ?? 0, studentCount: d.student_count ?? 0, itemCount: d.item_count ?? 0, mean: numOrNull(d.mean), sd: numOrNull(d.sd),
+    median: numOrNull(d.median), min: numOrNull(d.min), max: numOrNull(d.max), meanPercent: numOrNull(d.mean_percent),
+    histogram: d.histogram ?? [], passRatio: Number(d.pass_ratio ?? 0.5),
+    indicators: (d.indicators ?? []).map((x: any) => ({ indicatorId: x.indicator_id, itemCount: x.item_count, passCount: x.pass_count, meanRatio: numOrNull(x.mean_ratio) })),
+    itemsRecorded: d.items_recorded ?? 0, responsesDeleted: d.responses_deleted ?? 0, finalizedAs: d.finalized_as ?? 'closed', finalizedAt: d.finalized_at ?? '',
+  };
 }
 
 /** แปลงผลของ exam_get (JSON จากฐานข้อมูล) — ใช้ร่วมกับชุดทดสอบ */
@@ -248,6 +271,10 @@ export function toExamDetail(d: any): ExamDetail {
     seats: (d.seats ?? []).map((x: any) => ({ seatNo: x.seat_no, setNo: x.set_no })),
     hasResponses: !!d.has_responses,
     templateVersion: d.template_version ?? 1,
+    openedAt: d.opened_at ?? null,
+    closedSummary: d.closed_summary ? toClosedSummary(d.closed_summary) : null,
+    roundStats: (d.round_stats ?? []).map((x: any) => ({ itemId: x.item_id, version: x.version, n: x.n, nCorrect: x.n_correct,
+      r: numOrNull(x.r), optionCounts: x.option_counts ?? {} })),
   };
 }
 

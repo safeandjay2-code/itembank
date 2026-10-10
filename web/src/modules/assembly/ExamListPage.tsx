@@ -4,6 +4,7 @@ import { repo } from '../../data';
 import { EXAM_STATUS_TH, type ExamSummary } from '../../core/types';
 import { href } from '../../ui/router';
 import { useRefData } from '../core/useRefData';
+import { ExpiryNotice, daysLeft, warnDays } from '../analysis/expiry';
 
 export function ExamListPage() {
   const { data: ref } = useRefData();
@@ -21,6 +22,7 @@ export function ExamListPage() {
         </div>
         <a className="btn" href="#/exams/new">+ สร้างชุดข้อสอบ</a>
       </div>
+      {exams && <ExpiryNotice exams={exams} settings={ref?.settings} />}
       {error && <div className="error" role="alert">{error}</div>}
       {!exams && !error && <p className="sub">กำลังโหลด…</p>}
       {exams && exams.length === 0 && (
@@ -33,6 +35,8 @@ export function ExamListPage() {
               <div className="item-top">
                 <strong>{e.title}</strong>
                 <span className={`chip ex-${e.status}`}>{EXAM_STATUS_TH[e.status]}</span>
+                {e.status === 'open' && daysLeft(e.expiresAt) !== null && daysLeft(e.expiresAt)! <= warnDays(ref?.settings)
+                  && <span className="chip weak">ลบข้อมูลรายเลขที่ใน {daysLeft(e.expiresAt)} วัน</span>}
               </div>
               <div className="item-flags">
                 <span>{gradeShort(e.gradeId)}</span>

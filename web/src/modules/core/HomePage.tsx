@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { repo } from '../../data';
 import type { Profile } from '../../core/types';
 import { summarizeCoverage, type CoverageSummary } from '../bank/coverage';
+import { ExpiryNotice } from '../analysis/expiry';
 
 const ROLE_TH: Record<string, string> = { owner: 'เจ้าของระบบ', admin: 'ผู้ดูแล', teacher: 'ครู' };
 
@@ -25,6 +26,7 @@ export function HomePage({ profile }: { profile: Profile | null }) {
       <h1>สวัสดีครับ{profile?.displayName ? ` ${profile.displayName}` : ''}</h1>
       <p className="sub">บทบาท: {profile ? ROLE_TH[profile.role] : '—'}</p>
       {error && <div className="error" role="alert">{error}</div>}
+      <ExpiryNotice />
       {sum && (
         <div className="cards" data-testid="home-stats">
           <div className="card"><div className="stat-label">ตัวชี้วัดปลายทาง</div><div className="stat-value" data-testid="stat-indicators">{sum.indicatorCount}</div></div>
@@ -36,8 +38,8 @@ export function HomePage({ profile }: { profile: Profile | null }) {
       <div className="card">
         <strong>สถานะการสร้างระบบ</strong>
         <p className="sub" style={{ margin: '6px 0 0' }}>
-          เฟส 3 (ประกอบชุดข้อสอบ) — เลือกตัวชี้วัด/ระดับ/จำนวนข้อ แล้วระบบเลือกข้อ n น้อยก่อน ผสมข้อยึดค่า เรียงตามหลักสูตร
-          สลับข้อและตัวเลือกหลายชุด กำหนดชุดตามเลขที่ และตรวจความสมดุลเฉลยให้เอง · เมนูที่ขึ้นว่า "เฟส" จะเปิดตามลำดับการสร้าง
+          เฟส 6 (วิเคราะห์และปิดชุด) — รายงานคะแนนรายเลขที่/รายตัวชี้วัด วิเคราะห์รายข้อ (p, r, ตัวลวงที่เด็กหลงมาก) ส่งออก Excel/PDF
+          และปิดชุดเพื่อรวมสถิติเข้าคลังแล้วลบข้อมูลรายเลขที่ · ถ้าไม่ปิดเอง ระบบลบให้อัตโนมัติ 60 วันหลังเริ่มตรวจ · เมนูที่ขึ้นว่า "เฟส" จะเปิดตามลำดับการสร้าง
         </p>
       </div>
     </>

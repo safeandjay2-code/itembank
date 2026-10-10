@@ -221,6 +221,9 @@ export interface ExamSummary {
   createdAt: string;
   /** เวลาสอบ (นาที) สำหรับหัวกระดาษ — null = ยังไม่กำหนด */
   durationMin: number | null;
+  /** วันที่ข้อมูลรายเลขที่จะถูกลบอัตโนมัติ (นับจากวันเริ่มตรวจ) — null = ยังไม่เริ่มตรวจ/ปิดแล้ว */
+  expiresAt: string | null;
+  closedAt: string | null;
 }
 
 export interface ExamItemDetail {
@@ -247,6 +250,44 @@ export interface ExamDetail extends ExamSummary {
   hasResponses: boolean;
   /** รุ่นแบบกระดาษคำตอบ (QR บอกรุ่นนี้) */
   templateVersion: number;
+  openedAt: string | null;
+  /** ผลสรุประดับห้องที่เก็บไว้หลังปิดชุด/หมดอายุ (ไม่มีข้อมูลรายเลขที่) */
+  closedSummary: ClosedSummary | null;
+  /** สถิติรายข้อที่ชุดนี้บันทึกเข้าคลังตอนปิดชุด */
+  roundStats: RoundStat[];
+}
+
+// ---------- วิเคราะห์และปิดชุด (เฟส 6) ----------
+
+/** สถิติรายข้อ 1 รอบสอบที่เก็บในคลัง (item_stat_rounds) — ค่ารวม ไม่ระบุตัวนักเรียน */
+export interface RoundStat {
+  itemId: string;
+  version: number;
+  n: number;
+  nCorrect: number;
+  r: number | null;
+  /** จำนวนผู้เลือกแต่ละตัวเลือกต้นฉบับ {"1":…,"2":…,"3":…,"4":…,"blank":…,"multi":…} */
+  optionCounts: Record<string, number>;
+}
+
+/** ผลสรุประดับห้องตอนปิดชุด (exams.closed_summary) */
+export interface ClosedSummary {
+  n: number;
+  studentCount: number;
+  itemCount: number;
+  mean: number | null;
+  sd: number | null;
+  median: number | null;
+  min: number | null;
+  max: number | null;
+  meanPercent: number | null;
+  histogram: number[];
+  passRatio: number;
+  indicators: Array<{ indicatorId: string; itemCount: number; passCount: number; meanRatio: number | null }>;
+  itemsRecorded: number;
+  responsesDeleted: number;
+  finalizedAs: 'closed' | 'expired';
+  finalizedAt: string;
 }
 
 // ---------- ตรวจด้วยกล้อง (เฟส 5) ----------

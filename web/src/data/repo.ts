@@ -2,7 +2,8 @@
 // เปลี่ยนผู้ให้บริการฐานข้อมูลได้โดยเขียน implementation ใหม่ ไม่ต้องแก้หน้าจอ (SPEC §3.1, §3.10)
 import type {
   BankExport, CognitiveLevel, CoverageCell, DifficultyLevel, ExamCreateInput, ExamDetail, ExamSummary, Grade, ImportReport,
-  Indicator, ItemDetail, ItemFilter, ItemPage, ItemStatus, PoolItem, Profile, SaveItemInput, Settings,
+  Indicator, ItemDetail, ItemFilter, ItemPage, ItemStatus, PoolItem, Profile, SaveItemInput, ScanAnswer, ScanResponse, ScanSaveInput,
+  ScanSaveResult, Settings,
 } from '../core/types';
 
 export interface AuthState {
@@ -51,4 +52,12 @@ export interface Repo {
   // ---------- เอกสารพิมพ์ (เฟส 4) ----------
   /** แก้ชื่อแบบทดสอบและเวลาสอบ (หัวกระดาษ) */
   updateExamMeta(id: string, title: string, durationMin: number): Promise<void>;
+
+  // ---------- ตรวจด้วยกล้อง (เฟส 5) ----------
+  /** บันทึกผลตรวจ 1 แผ่น (คะแนน + remark แจกผิดชุด คำนวณที่ฐานข้อมูล) — เลขที่ซ้ำไม่เขียนทับถ้าไม่สั่ง replace */
+  saveScan(input: ScanSaveInput): Promise<ScanSaveResult>;
+  /** ครูยืนยัน/แก้คำตอบ หรือเปลี่ยนชุดที่ใช้ตรวจ → remark ของเลขที่นี้ถือว่าแก้แล้ว */
+  reviewScan(examId: string, seatNo: number, setNo: number, answers: ScanAnswer[]): Promise<ScanResponse>;
+  deleteScan(examId: string, seatNo: number): Promise<void>;
+  listScans(examId: string): Promise<ScanResponse[]>;
 }

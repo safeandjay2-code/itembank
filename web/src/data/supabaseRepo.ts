@@ -2,7 +2,8 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { Repo, AuthState } from './repo';
 import type {
   BankExport, CognitiveLevel, CoverageCell, DifficultyLevel, ExamCreateInput, ExamDetail, ExamSummary, Grade, ImportReport,
-  Indicator, ItemDetail, ItemFilter, ItemPage, ItemStatus, ItemSummary, ItemVersion, PoolItem, Profile, SaveItemInput, Settings,
+  Indicator, ItemDetail, ItemFilter, ItemPage, ItemStatus, ItemSummary, ItemVersion, PoolItem, Profile, SaveItemInput, ScanAnswer, ScanResponse,
+  ScanSaveInput, ScanSaveResult, Settings,
 } from '../core/types';
 import { toDbPayload } from '../modules/assembly/payload';
 
@@ -199,6 +200,32 @@ export class SupabaseRepo implements Repo {
     const { error } = await this.sb.rpc('exam_update_meta', { p_exam: id, p_title: title, p_duration_min: durationMin });
     if (error) throw new Error(error.message);
   }
+
+  // ---------- ตรวจด้วยกล้อง ----------
+  async saveScan(input: ScanSaveInput): Promise<ScanSaveResult> {
+    const { data, error } = await this.sb.rpc('scan_save_response', { p_exam: input.examId, p_seat: input.seatNo, p_set: input.setNo,
+      p_answers: input.answers, p_ambiguous: input.ambiguous, p_source: input.source, p_replace: input.replace });
+    if (error) throw new Error(error.message);
+    const d = data as any;
+    return { status: d.status, response: toScanResponse(d.response), newScore: d.new_score ?? undefined };
+  }
+
+  async reviewScan(examId: string, seatNo: number, setNo: number, answers: ScanAnswer[]): Promise<ScanResponse> {
+    const { data, error } = await this.sb.rpc('scan_review_response', { p_exam: examId, p_seat: seatNo, p_set: setNo, p_answers: answers });
+    if (error) throw new Error(error.message);
+    return toScanResponse(data);
+  }
+
+  async deleteScan(examId: string, seatNo: number): Promise<void> {
+    const { error } = await this.sb.rpc('scan_delete_response', { p_exam: examId, p_seat: seatNo });
+    if (error) throw new Error(error.message);
+  }
+
+  async listScans(examId: string): Promise<ScanResponse[]> {
+    const { data, error } = await this.sb.rpc('scan_responses', { p_exam: examId });
+    if (error) throw new Error(error.message);
+    return ((data ?? []) as any[]).map(toScanResponse);
+  }
 }
 
 function toExamSummary(e: any): ExamSummary {
@@ -233,4 +260,8 @@ function toSummary(r: any): ItemSummary {
     n: r.n ?? 0, p: r.p === null || r.p === undefined ? null : Number(r.p), r: r.r === null || r.r === undefined ? null : Number(r.r),
     updatedAt: r.updated_at,
   };
+}
+
+export function toScanResponse(r: any): ScanResponse {
+  return { seatNo: r.seat_no, setNo: r.set_no, answers: r.answers, score: r.score, flags: r.flags ?? [], source: r.source, scannedAt: r.scanned_at };
 }

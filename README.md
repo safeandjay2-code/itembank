@@ -13,6 +13,8 @@
 | `web/src/modules/bank/figure/` | ตัววาดรูปจากข้อกำหนด (SVG ตามสัดส่วนจริง) — เพิ่มชนิดรูป: `spec.ts` + `layout.ts` + `forms.ts` + `samples.ts` |
 | `web/src/modules/assembly/` | ประกอบชุดข้อสอบ: `assemble.ts` (เลือก/เรียง/สลับ/สมดุลเฉลย), `validate.ts` (ตัวตรวจกฎ §6 อิสระ), `serverRules.ts` (กฎเดียวกับฐานข้อมูล สำหรับโหมดสาธิต) |
 | `web/src/modules/print/` | เอกสารพิมพ์: `model.ts` (ข้อมูลรายชุด), `PrintViews.tsx` (หน้าพิมพ์/PDF), `docx.ts` (Word), `answerSheetSvg.ts` + `template.ts` (กระดาษคำตอบ ตามแบบ `data/answer_sheet_template_v1.json`) |
+| `web/src/modules/scan/` | ตรวจกระดาษคำตอบ (เฟส 5): `omr.ts` (QR → มุมดำ → จัดภาพตรง → วัดความเข้มวง), `grade.ts` (กฎ §8.3 + แจกผิดชุด), `session.ts` (กันเฟรมเบลอ), `ScanPage.tsx` (กล้อง/อัปโหลด/ผลตรวจ), ทำงานใน Web Worker — ภาพไม่ออกจากเครื่อง |
+| `web/tests/unit/scan/` | ภาพจำลองกระดาษคำตอบที่รู้คำตอบ (`synth.ts`: เอียง เงา แสงน้อย เบลอ ฝนจาง) · ทดสอบหนัก: `SCAN_STRESS=200 npx vitest run tests/unit/scan/stress.test.ts` |
 | `tests/db/fixtures/` | แผนชุดข้อสอบที่สร้างด้วยอัลกอริทึมจริง ให้ฐานข้อมูลทดสอบรับ (สร้างใหม่: `UPDATE_FIXTURE=1 npx vitest run tests/unit/assembly-fixture.test.ts`) |
 | `supabase/bundle/` | ไฟล์รวมสำหรับวางใน SQL Editor ของ Supabase ทีละเฟส |
 

@@ -8,8 +8,9 @@ import type { Repo, AuthState } from './repo';
 import type {
   BankExport, CognitiveLevel, CoverageCell, DifficultyLevel, ExamCreateInput, ExamDetail, ExamStatus, ExamSummary, Grade,
   ImportReport, Indicator, ItemAnswer, ItemContent, ItemDetail, ItemEvent, ItemFilter, ItemPage, ItemStatus, ItemSummary,
-  ItemVersion, PoolItem, Profile, QaReport, SaveItemInput, Settings,
+  ItemVersion, PoolItem, Profile, QaReport, SaveItemInput, ScanAnswer, ScanFlag, ScanResponse, ScanSaveInput, ScanSaveResult, Settings,
 } from '../core/types';
+import { answersEqual, detectWrongSet, scanConfigFromSettings, score } from '../modules/scan/grade';
 import { ASSEMBLABLE, classifyEdit, statusAfterSave, statusChangeBlocked } from '../modules/bank/rules';
 import { configFromSettings, makeOrdering, seatSet } from '../modules/assembly/assemble';
 import { checkCreateInput } from '../modules/assembly/serverRules';
@@ -57,6 +58,8 @@ export class MemoryRepo implements Repo {
   private exams: MemExam[] = [];
   private seq = 0;
   private examSeq = 0;
+  /** ผลตรวจ: exam id → เลขที่ → ผล */
+  private scans = new Map<string, Map<number, ScanResponse>>();
 
   /** samplePerCell = จำนวนข้อหุ่นต่อช่อง (ตัวชี้วัด × ระดับ) — เหมือน seed S900 */
   constructor(samplePerCell = 2) {
@@ -404,7 +407,7 @@ export class MemoryRepo implements Repo {
       sets: e.sets.map((s) => ({ setNo: s.setNo, entries: s.entries.map((x, k) => ({ position: k + 1, itemId: x.itemId,
         optionOrder: [...x.optionOrder], key: x.optionOrder.indexOf(ans.get(x.itemId)!) + 1 })) })),
       seats: Array.from({ length: e.studentCount }, (_, k) => ({ seatNo: k + 1, setNo: seatSet(k + 1, e.setCount) })),
-      hasResponses: false,
+      hasResponses: (this.scans.get(e.id)?.size ?? 0) > 0,
       templateVersion: 1,
     };
   }
@@ -412,7 +415,7 @@ export class MemoryRepo implements Repo {
   async deleteExam(id: string): Promise<void> {
     const e = this.exams.find((x) => x.id === id);
     if (!e) throw new Error('ไม่พบชุดข้อสอบ');
-    if (e.status !== 'draft') throw new Error('ลบได้เฉพาะชุดที่ยังไม่เริ่มสอบและยังไม่มีคำตอบ');
+    if (e.status !== 'draft' || (this.scans.get(id)?.size ?? 0) > 0) throw new Error('ลบได้เฉพาะชุดที่ยังไม่เริ่มสอบและยังไม่มีคำตอบ');
     this.exams = this.exams.filter((x) => x.id !== id);
   }
 
@@ -423,5 +426,69 @@ export class MemoryRepo implements Repo {
     if (!Number.isInteger(durationMin) || durationMin < 1 || durationMin > 300) throw new Error('เวลาสอบต้องอยู่ระหว่าง 1–300 นาที');
     e.title = title.trim();
     e.durationMin = durationMin;
+  }
+
+  // ---------- ตรวจด้วยกล้อง (เลียนแบบ migration 0008) ----------
+  private async scanContext(examId: string) {
+    const e = this.exams.find((x) => x.id === examId);
+    const d = e ? await this.getExam(examId) : null;
+    if (!e || !d) throw new Error('ไม่พบชุดข้อสอบ');
+    const keys: Record<number, number[]> = {};
+    d.sets.forEach((s) => { keys[s.setNo] = s.entries.map((x) => x.key); });
+    if (!this.scans.has(examId)) this.scans.set(examId, new Map());
+    return { e, d, keys, rows: this.scans.get(examId)! };
+  }
+
+  private checkAnswers(answers: ScanAnswer[], n: number, setNo: number, setCount: number) {
+    if (!Array.isArray(answers) || answers.length !== n) throw new Error(`คำตอบต้องมี ${n} ข้อ ตามชุดข้อสอบ`);
+    if (answers.some((a) => !(a === null || a === 'multi' || a === 1 || a === 2 || a === 3 || a === 4)))
+      throw new Error('คำตอบแต่ละข้อต้องเป็น 1–4, ไม่ฝน (null) หรือ "multi"');
+    if (setNo < 1 || setNo > setCount) throw new Error(`ชุดที่ ${setNo} ไม่มีในชุดข้อสอบนี้`);
+  }
+
+  async saveScan(input: ScanSaveInput): Promise<ScanSaveResult> {
+    const { e, d, keys, rows } = await this.scanContext(input.examId);
+    if (e.status === 'closed' || e.status === 'expired') throw new Error('ชุดข้อสอบนี้ปิดแล้ว บันทึกคำตอบเพิ่มไม่ได้');
+    const seat = d.seats.find((x) => x.seatNo === input.seatNo);
+    if (!seat) throw new Error(`ไม่มีเลขที่ ${input.seatNo} ในชุดข้อสอบนี้`);
+    if (seat.setNo !== input.setNo) throw new Error(`กระดาษคำตอบระบุชุดที่ ${input.setNo} แต่เลขที่ ${input.seatNo} ได้ชุดที่ ${seat.setNo}`);
+    this.checkAnswers(input.answers, d.itemCount, input.setNo, e.setCount);
+    const amb = [...new Set(input.ambiguous)].sort((a, b) => a - b);
+    if (amb.some((x) => x < 1 || x > d.itemCount)) throw new Error('ลำดับข้อที่กำกวมไม่ถูกต้อง');
+    const flags: ScanFlag[] = [];
+    if (amb.length) flags.push({ type: 'ambiguous', positions: amb, resolved: false });
+    const ws = detectWrongSet(input.answers, keys, input.setNo, scanConfigFromSettings(this.settingsMap()));
+    if (ws) flags.push({ type: 'wrong_set', suggested_set: ws.suggestedSet, score_alt: ws.scoreAlt, resolved: false });
+    const old = rows.get(input.seatNo);
+    if (old && !input.replace) {
+      if (answersEqual(old.answers, input.answers) && old.setNo === input.setNo) return { status: 'unchanged', response: clone(old) };
+      return { status: 'exists', response: clone(old), newScore: score(input.answers, keys[input.setNo]) };
+    }
+    const r: ScanResponse = { seatNo: input.seatNo, setNo: input.setNo, answers: [...input.answers], score: score(input.answers, keys[input.setNo]),
+      flags, source: input.source, scannedAt: now() };
+    rows.set(input.seatNo, r);
+    if (e.status === 'draft') e.status = 'open';
+    return { status: old ? 'replaced' : 'saved', response: clone(r) };
+  }
+
+  async reviewScan(examId: string, seatNo: number, setNo: number, answers: ScanAnswer[]): Promise<ScanResponse> {
+    const { e, d, keys, rows } = await this.scanContext(examId);
+    const old = rows.get(seatNo);
+    if (!old) throw new Error(`เลขที่ ${seatNo} ยังไม่ได้ตรวจ`);
+    this.checkAnswers(answers, d.itemCount, setNo, e.setCount);
+    const r: ScanResponse = { ...old, setNo, answers: [...answers], score: score(answers, keys[setNo]), flags: old.flags.map((f) => ({ ...f, resolved: true })) };
+    rows.set(seatNo, r);
+    return clone(r);
+  }
+
+  async deleteScan(examId: string, seatNo: number): Promise<void> {
+    const { e, rows } = await this.scanContext(examId);
+    if (e.status === 'closed' || e.status === 'expired') throw new Error('ชุดข้อสอบนี้ปิดแล้ว');
+    rows.delete(seatNo);
+  }
+
+  async listScans(examId: string): Promise<ScanResponse[]> {
+    const { rows } = await this.scanContext(examId);
+    return [...rows.values()].sort((a, b) => a.seatNo - b.seatNo).map(clone);
   }
 }

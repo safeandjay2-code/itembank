@@ -221,7 +221,9 @@ select public.exam_delete((select id from own));
 select pg_temp.ok(not exists (select 1 from exams where id = (select id from own)) and not exists (select 1 from exam_set_items where exam_id = (select id from own)),
                   'ลบชุดที่ยังไม่มีคำตอบได้ (ข้อมูลลูกหายด้วย)');
 select pg_temp.ok((select count(*) from items where status = 'active') > 0, 'ลบชุดแล้วข้อในคลังยังอยู่');
-insert into responses(exam_id, seat_no, set_no, answers) values ((select exam from made where k = 0), 1, 1, '[]');
+-- (เฟส 5: คำตอบต้องครบจำนวนข้อ — ใช้ "ไม่ฝน" ทุกข้อ)
+insert into responses(exam_id, seat_no, set_no, answers) select exam, 1, 1, (select jsonb_agg(null::int) from generate_series(1, item_count))
+  from made join exams on exams.id = made.exam where k = 0;
 select pg_temp.fails($q$select public.exam_delete((select exam from made where k = 0))$q$, 'ลบได้เฉพาะชุดที่ยังไม่เริ่มสอบ', 'ลบชุดที่มีคำตอบแล้วไม่ได้');
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000b', false);
 select public.exam_delete((select id from tex));

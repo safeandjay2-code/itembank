@@ -225,3 +225,37 @@ section.card { margin-bottom: 12px; }
 .seat-grid li span { color: var(--muted); }
 .exam-items { margin: 0; padding-left: 1.6em; display: grid; gap: 8px; }
 .exam-items .code { font-weight: 600; }
+
+/* ---------- เฟส 5: ตรวจด้วยกล้อง ---------- */
+.scan-progress { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: -8px 0 12px; }
+button.link-like { border: 0; cursor: pointer; font: inherit; }
+.btn.big { font-size: 1.1rem; padding: 14px 22px; }
+.video-box { position: relative; background: #000; border-radius: 8px; overflow: hidden; }
+.video-box.hidden { display: none; }
+.video-box video, .video-box canvas { display: block; width: 100%; max-height: 70vh; object-fit: contain; }
+.video-box canvas { position: absolute; inset: 0; height: 100%; pointer-events: none; }
+.scan-status { margin: 10px 0 6px; color: var(--muted); min-height: 1.4em; }
+.scan-last { display: grid; gap: 2px; padding: 10px 12px; border-radius: 8px; background: var(--none-bg); font-size: 1.05rem; }
+.scan-last span { font-size: .9rem; color: var(--muted); }
+.scan-last.ok { background: var(--ok-bg); }
+.scan-last.remark, .scan-last.dup { background: var(--low-bg); }
+.scan-last.warn { background: var(--low-bg); color: var(--warn); }
+.conflict { border: 1px solid var(--warn); background: var(--low-bg); border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; }
+.conflict p { margin: 0 0 8px; }
+.upload-results { list-style: none; padding: 0; margin: 12px 0 0; display: grid; gap: 6px; font-size: .92rem; }
+.upload-results li { display: grid; gap: 2px; padding: 6px 10px; border-radius: 6px; background: var(--ok-bg); overflow-wrap: anywhere; }
+.upload-results li .label { font-size: .8rem; color: var(--muted); }
+.upload-results li.remark, .upload-results li.dup { background: var(--low-bg); }
+.upload-results li.warn { background: var(--low-bg); color: var(--warn); }
+.scan-table tr.has-remark td { background: var(--low-bg); }
+.muted { color: var(--muted); }
+.inline-field { display: inline-flex; gap: 6px; align-items: center; margin: 4px 0 12px; }
+.inline-field select, .answer-grid select { padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); }
+.answer-grid { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 6px; }
+.answer-grid li { display: grid; grid-template-columns: 26px minmax(0, 1fr) 44px; align-items: center; gap: 6px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 6px; min-width: 0; }
+.answer-grid select { width: 100%; min-width: 0; }
+.answer-grid li.amb { border-color: var(--warn); background: var(--low-bg); }
+.answer-grid .no { font-weight: 700; min-width: 22px; text-align: right; }
+.answer-grid .key { font-size: .85rem; color: var(--muted); white-space: nowrap; }
+.answer-grid li.right .key { color: var(--accent); }
+.confirm-inline { display: inline-flex; gap: 6px; align-items: center; flex-wrap: wrap; }

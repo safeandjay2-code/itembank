@@ -82,9 +82,24 @@ describe('แบบกระดาษคำตอบรุ่น 1', () => {
   it('QR: ไม่มีเฉลยหรือรหัสข้อ อ่านกลับได้ตรง', () => {
     const d = { examId: '0b6c1f2e-6a3d-4c55-9e1a-1234567890ab', setNo: 3, seatNo: 27, template: 1 };
     const s = qrPayload(d);
-    expect(s).toBe('IB1|0b6c1f2e-6a3d-4c55-9e1a-1234567890ab|3|27|1');
+    // เฟส 5: รหัสชุดแบบ uuid ย่อเป็น base32 ใน QR แบบ alphanumeric (QR รุ่น 2 แทนรุ่น 4 — โมดูลใหญ่ขึ้น อ่านง่ายขึ้น)
+    expect(s).toMatch(/^IB2:[A-Z2-7]{26}:3:27:1$/);
+    expect(s.length).toBeLessThanOrEqual(38);
     expect(parseQrPayload(s)).toEqual(d);
+    expect(parseQrPayload('IB1|0b6c1f2e-6a3d-4c55-9e1a-1234567890ab|3|27|1')).toEqual(d);   // รูปแบบเดิมยังอ่านได้
+    expect(qrPayload({ ...d, examId: 'exam-1' })).toBe('IB1|exam-1|3|27|1');
     expect(parseQrPayload('hello')).toBeNull();
+    expect(parseQrPayload('IB2:AAAA:1:1:1')).toBeNull();
+  });
+  it('QR: uuid ↔ base32 กลับไปกลับมาได้ตรง 500 ค่า และ QR ไม่เกินรุ่น 2', async () => {
+    const { uuidToB32, b32ToUuid } = await import('../../src/modules/print/template');
+    const QR = (await import('qrcode')).default;
+    for (let k = 0; k < 500; k++) {
+      const u = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => ((Math.random() * 16) | (c === 'y' ? 8 : 0)).toString(16).slice(-1));
+      expect(b32ToUuid(uuidToB32(u))).toBe(u);
+    }
+    const worst = qrPayload({ examId: 'ffffffff-ffff-4fff-bfff-ffffffffffff', setNo: 10, seatNo: 60, template: 1 });
+    expect(QR.create(worst, { errorCorrectionLevel: 'M' }).version).toBe(2);
   });
   it('SVG กระดาษคำตอบ: มุมดำ 4 มุม วงกลมเท่าจำนวนข้อ × 4 ไม่มีชื่อนักเรียน', () => {
     const svg = answerSheetSvg(t, { examId: 'x', title: 'สอบ', gradeShort: 'ป.5', itemCount: 17, setNo: 2, seatNo: 5 });

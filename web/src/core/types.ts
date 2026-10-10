@@ -248,3 +248,46 @@ export interface ExamDetail extends ExamSummary {
   /** รุ่นแบบกระดาษคำตอบ (QR บอกรุ่นนี้) */
   templateVersion: number;
 }
+
+// ---------- ตรวจด้วยกล้อง (เฟส 5) ----------
+
+/** คำตอบ 1 ข้อ: ตัวเลือก 1–4 | null (ไม่ฝน) | 'multi' (ฝนหลายช่อง = 0 คะแนน) */
+export type ScanAnswer = 1 | 2 | 3 | 4 | null | 'multi';
+
+export type ScanFlag =
+  | { type: 'ambiguous'; positions: number[]; resolved: boolean }
+  | { type: 'wrong_set'; suggested_set: number; score_alt: number; resolved: boolean };
+
+export type ScanSource = 'camera' | 'upload' | 'manual';
+
+export interface ScanResponse {
+  seatNo: number;
+  /** ชุดที่ใช้ตรวจ (ปกติ = ชุดของเลขที่ · เปลี่ยนได้เมื่อครูยืนยันว่าแจกผิดชุด) */
+  setNo: number;
+  answers: ScanAnswer[];
+  /** คำนวณที่ฐานข้อมูล */
+  score: number;
+  flags: ScanFlag[];
+  source: ScanSource;
+  scannedAt: string;
+}
+
+export interface ScanSaveInput {
+  examId: string;
+  seatNo: number;
+  setNo: number;
+  answers: ScanAnswer[];
+  /** ลำดับข้อ (เริ่ม 1) ที่เครื่องอ่านไม่แน่ใจ */
+  ambiguous: number[];
+  source: ScanSource;
+  /** true = เขียนทับผลเดิมของเลขที่นี้ */
+  replace: boolean;
+}
+
+export interface ScanSaveResult {
+  /** saved = ใหม่ · replaced = เขียนทับ · unchanged = สแกนซ้ำผลเดิม · exists = มีผลเดิมที่ต่างกัน (ยังไม่เขียนทับ) */
+  status: 'saved' | 'replaced' | 'unchanged' | 'exists';
+  response: ScanResponse;
+  /** เมื่อ status = exists: คะแนนของผลใหม่ที่ยังไม่บันทึก */
+  newScore?: number;
+}

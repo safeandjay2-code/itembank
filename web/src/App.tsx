@@ -17,6 +17,7 @@ import { ScanHomePage } from './modules/scan/ScanHomePage';
 import { ReportPage } from './modules/analysis/ReportPage';
 import { ClosePage } from './modules/analysis/ClosePage';
 import { ReportListPage } from './modules/analysis/ReportListPage';
+import { HealthPage } from './modules/calibration/HealthPage';
 import { useRoute } from './ui/router';
 
 // เมนูของระบบ — โมดูลที่ยังไม่สร้างแสดงเป็น "เร็ว ๆ นี้" พร้อมเฟส (เพิ่มหน้าใหม่ได้ที่นี่ที่เดียว)
@@ -28,7 +29,7 @@ const NAV: Array<{ path?: string; match?: string; label: string; phase?: number;
   { path: '/exams', match: '/exams', label: 'ชุดข้อสอบ' },
   { path: '/scan', label: 'ตรวจด้วยกล้อง' },
   { path: '/reports', label: 'รายงานผล' },
-  { label: 'ปรับความยาก', phase: 7 },
+  { path: '/health', label: 'สุขภาพคลัง', bankAdmin: true },
 ];
 
 export function App() {
@@ -57,13 +58,14 @@ export function App() {
   const examMatch = /^\/exams\/([^/]+)$/.exec(path);
 
   function page() {
-    const needsAdmin = path.startsWith('/items') || path === '/backup';
+    const needsAdmin = path.startsWith('/items') || path === '/backup' || path === '/health';
     if (needsAdmin && profile && !isBankAdmin) return <div className="card">หน้านี้สำหรับผู้ดูแลคลังข้อสอบเท่านั้น</div>;
     if (needsAdmin && !profile) return <p className="sub">กำลังโหลด…</p>;
     if (path === '/coverage') return <CoveragePage />;
     if (path === '/items') return <ItemListPage route={route} />;
     if (itemMatch) return <ItemEditorPage key={itemMatch[1]} id={itemMatch[1] === 'new' ? null : itemMatch[1]} params={route.params} />;
     if (path === '/backup') return <BackupPage />;
+    if (path === '/health') return <HealthPage />;
     if (path === '/exams') return <ExamListPage />;
     if (path === '/exams/new') return <ExamBuilderPage route={route} />;
     if (path === '/scan') return <ScanHomePage />;

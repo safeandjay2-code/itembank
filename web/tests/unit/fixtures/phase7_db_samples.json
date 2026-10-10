@@ -1,0 +1,293 @@
+{
+ "note": "ผลจริงจาก PostgreSQL (migration 0010) — สร้างจากสถานการณ์ปิดชุดใน tests/db/test_phase7.sql ส่วน ค",
+ "calib_run": {
+  "moved": [],
+  "run_id": 3,
+  "source": "manual",
+  "exam_id": null,
+  "flagged": [],
+  "stopped": 0,
+  "unflagged": [],
+  "shortfalls": [],
+  "items_checked": 3
+ },
+ "bank_health": {
+  "runs": [
+   {
+    "id": 2,
+    "moved": 1,
+    "ran_at": "2026-10-10T10:43:52.322202+00:00",
+    "source": "exam",
+    "exam_id": "00000000-0000-4000-e700-000000000001",
+    "flagged": 1,
+    "unflagged": 0,
+    "shortfalls": 1,
+    "items_checked": 3
+   },
+   {
+    "id": 1,
+    "moved": 0,
+    "ran_at": "2026-10-10T10:43:52.078423+00:00",
+    "source": "manual",
+    "exam_id": null,
+    "flagged": 0,
+    "unflagged": 0,
+    "shortfalls": 0,
+    "items_checked": 0
+   }
+  ],
+  "flagged": [
+   {
+    "n": 70,
+    "p": 0.5571,
+    "r": -0.7143,
+    "n_r": 70,
+    "flag": "negative_r",
+    "status": "needs_fix",
+    "flag_at": "2026-10-10T10:43:52.322202+00:00",
+    "item_id": "00000000-0000-4000-c701-000000000002",
+    "grade_id": "P4",
+    "item_code": "M-710002",
+    "difficulty": 2,
+    "indicator_id": "MATH-2560-P4-01",
+    "indicator_code": "ค 1.1 ป.4/2"
+   }
+  ],
+  "coverage": {
+   "full": 0,
+   "cells": 132,
+   "empty": 130,
+   "ready_total": 2,
+   "target_total": 2640
+  },
+  "settings": {
+   "buffer": 0.05,
+   "target": 20,
+   "r_min_n": 50,
+   "recent_days": 30,
+   "r_flag_below": 0.2,
+   "min_n_to_move": 50,
+   "same_grade_only": true
+  },
+  "level_mix": [
+   {
+    "est": 0,
+    "current": 1,
+    "difficulty": 1
+   },
+   {
+    "est": 3,
+    "current": 2,
+    "difficulty": 2
+   },
+   {
+    "est": 0,
+    "current": 0,
+    "difficulty": 3
+   },
+   {
+    "est": 0,
+    "current": 0,
+    "difficulty": 4
+   }
+  ],
+  "n_buckets": {
+   "none": 0,
+   "calibrated": 3,
+   "collecting": 0
+  },
+  "shortfalls": [
+   {
+    "need": 19,
+    "draft": 0,
+    "ready": 1,
+    "grade_id": "P4",
+    "moved_out": 0,
+    "needs_fix": 0,
+    "indicator_id": "MATH-2560-P4-01",
+    "difficulty_id": 1,
+    "indicator_code": "ค 1.1 ป.4/2"
+   },
+   {
+    "need": 19,
+    "draft": 0,
+    "ready": 1,
+    "grade_id": "P4",
+    "moved_out": 1,
+    "needs_fix": 1,
+    "indicator_id": "MATH-2560-P4-01",
+    "difficulty_id": 2,
+    "indicator_code": "ค 1.1 ป.4/2"
+   },
+   {
+    "need": 20,
+    "draft": 0,
+    "ready": 0,
+    "grade_id": "P4",
+    "moved_out": 0,
+    "needs_fix": 0,
+    "indicator_id": "MATH-2560-P4-01",
+    "difficulty_id": 3,
+    "indicator_code": "ค 1.1 ป.4/2"
+   },
+   {
+    "need": 20,
+    "draft": 0,
+    "ready": 0,
+    "grade_id": "P4",
+    "moved_out": 0,
+    "needs_fix": 0,
+    "indicator_id": "MATH-2560-P4-01",
+    "difficulty_id": 4,
+    "indicator_code": "ค 1.1 ป.4/2"
+   },
+   {
+    "need": 20,
+    "draft": 0,
+    "ready": 0,
+    "grade_id": "P4",
+    "moved_out": 0,
+    "needs_fix": 0,
+    "indicator_id": "MATH-2560-P4-02",
+    "difficulty_id": 1,
+    "indicator_code": "ค 1.1 ป.4/11"
+   },
+   {
+    "need": 20,
+    "draft": 0,
+    "ready": 0,
+    "grade_id": "P4",
+    "moved_out": 0,
+    "needs_fix": 0,
+    "indicator_id": "MATH-2560-P4-02",
+    "difficulty_id": 2,
+    "indicator_code": "ค 1.1 ป.4/11"
+   }
+  ],
+  "move_totals": {
+   "easier": 1,
+   "harder": 0,
+   "all_time": 1
+  },
+  "generated_at": "2026-10-10T10:43:52.344873+00:00",
+  "recent_moves": [
+   {
+    "n": 70,
+    "p": 0.9714,
+    "to": 1,
+    "from": 2,
+    "item_id": "00000000-0000-4000-c701-000000000001",
+    "grade_id": "P4",
+    "moved_at": "2026-10-10T10:43:52.322202+00:00",
+    "direction": "easier",
+    "item_code": "M-710001",
+    "indicator_id": "MATH-2560-P4-01",
+    "indicator_code": "ค 1.1 ป.4/2"
+   }
+  ],
+  "sample_count": 0,
+  "status_counts": {
+   "active": 2,
+   "needs_fix": 1
+  },
+  "needs_fix_count": 1
+ },
+ "calib_item_info": {
+  "moves": [
+   {
+    "n": 70,
+    "p": 0.9714,
+    "r": 0.2857,
+    "to": 1,
+    "from": 2,
+    "version": 1,
+    "moved_at": "2026-10-10T10:43:52.322202+00:00",
+    "direction": "easier"
+   }
+  ],
+  "stats": {
+   "n": 70,
+   "p": 0.9714,
+   "r": 0.2857,
+   "n_r": 70,
+   "rounds": 2,
+   "item_id": "00000000-0000-4000-c701-000000000001",
+   "version": 1,
+   "grade_id": "P4",
+   "n_correct": 68,
+   "r_sum_milli": 20000
+  },
+  "rounds": [
+   {
+    "n": 40,
+    "r": 0.5,
+    "version": 1,
+    "grade_id": "P4",
+    "n_correct": 38,
+    "recorded_at": "2026-10-10T10:43:52.306485+00:00",
+    "option_counts": {}
+   },
+   {
+    "n": 30,
+    "r": 0.0,
+    "version": 1,
+    "grade_id": "P4",
+    "n_correct": 30,
+    "recorded_at": "2026-10-10T10:43:52.322202+00:00",
+    "option_counts": {
+     "1": 30,
+     "2": 0,
+     "3": 0,
+     "4": 0,
+     "blank": 0,
+     "multi": 0
+    }
+   }
+  ],
+  "decision": {
+   "flag": null,
+   "target": null,
+   "direction": null
+  }
+ },
+ "calib_exam_result": {
+  "moved": [
+   {
+    "n": 70,
+    "p": 0.9714,
+    "to": 1,
+    "from": 2,
+    "item_id": "00000000-0000-4000-c701-000000000001",
+    "direction": "easier",
+    "item_code": "M-710001",
+    "indicator_id": "MATH-2560-P4-01"
+   }
+  ],
+  "run_id": 2,
+  "source": "exam",
+  "exam_id": "00000000-0000-4000-e700-000000000001",
+  "flagged": [
+   {
+    "r": -0.7143,
+    "n_r": 70,
+    "flag": "negative_r",
+    "item_id": "00000000-0000-4000-c701-000000000002",
+    "item_code": "M-710002",
+    "indicator_id": "MATH-2560-P4-01"
+   }
+  ],
+  "stopped": 1,
+  "unflagged": [],
+  "shortfalls": [
+   {
+    "ready": 1,
+    "target": 20,
+    "grade_id": "P4",
+    "indicator_id": "MATH-2560-P4-01",
+    "difficulty_id": 2,
+    "indicator_code": "ค 1.1 ป.4/2"
+   }
+  ],
+  "items_checked": 3
+ }
+}

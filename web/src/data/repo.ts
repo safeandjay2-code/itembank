@@ -5,6 +5,7 @@ import type {
   Indicator, ItemDetail, ItemFilter, ItemPage, ItemStatus, PoolItem, Profile, SaveItemInput, ScanAnswer, ScanResponse, ScanSaveInput,
   ScanSaveResult, Settings, ClosedSummary,
 } from '../core/types';
+import type { BankHealth, CalibrationRun, ItemCalibrationInfo } from '../modules/calibration/calibrate';
 
 export interface AuthState {
   signedIn: boolean;
@@ -65,4 +66,14 @@ export interface Repo {
   // ---------- วิเคราะห์และปิดชุด (เฟส 6) ----------
   /** ปิดชุด: รวมสถิติรายข้อเข้าคลัง แล้วลบข้อมูลรายเลขที่ทั้งหมด (ย้อนกลับไม่ได้) */
   closeExam(id: string): Promise<ClosedSummary>;
+
+  // ---------- ปรับความยากและสุขภาพคลัง (เฟส 7) ----------
+  /** สรุปสุขภาพคลัง: ช่องขาด ข้อต้องแก้ การย้ายระดับล่าสุด ความครบของสถิติ */
+  getBankHealth(subjectId: string): Promise<BankHealth>;
+  /** สั่งปรับความยาก (ไม่ระบุ = ทั้งคลัง) — ปกติระบบปรับเองทุกครั้งที่ปิดชุด */
+  runCalibration(itemIds?: string[]): Promise<CalibrationRun>;
+  /** สถิติรายรอบ ผลตัดสิน และประวัติการย้ายของข้อ */
+  getItemCalibration(id: string): Promise<ItemCalibrationInfo | null>;
+  /** ผลการปรับความยากที่เกิดจากการปิดชุดนี้ (null = ยังไม่ปิด/ไม่มีสถิติ) */
+  getExamCalibration(examId: string): Promise<CalibrationRun | null>;
 }

@@ -16,6 +16,7 @@ if (repo instanceof MemoryRepo && typeof window !== 'undefined') {
   const mem = repo;
   (window as any).__itembankDemo = {
     ageExam: (id: string, days: number) => mem.debugAgeExam(id, days),
+    addStats: (itemCode: string, rounds: Array<{ n: number; nCorrect: number; r: number | null; gradeId?: string }>) => mem.debugAddStats(itemCode, rounds),
     getExam: (id: string) => mem.getExam(id),
     saveScan: (examId: string, seatNo: number, setNo: number, answers: Array<number | null | 'multi'>, ambiguous: number[] = []) =>
       mem.saveScan({ examId, seatNo, setNo, answers: answers as any, ambiguous, source: 'manual', replace: true }),

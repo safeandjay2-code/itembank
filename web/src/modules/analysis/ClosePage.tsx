@@ -1,5 +1,5 @@
 // ปิดชุดข้อสอบ (SPEC §10): หน้ายืนยัน → ดาวน์โหลดรายงานฉบับสุดท้าย → รวมสถิติรายข้อเข้าคลัง → ลบข้อมูลรายเลขที่ทั้งหมด
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { repo } from '../../data';
 import type { ClosedSummary } from '../../core/types';
 import { href } from '../../ui/router';
@@ -9,6 +9,8 @@ import { buildReportXlsx, compactSeats, fix, makeNames, reportFileName } from '.
 import { download, useExamWithScans } from './ReportPage';
 import { expiryText } from './expiry';
 import './report.css';
+import { RunResult } from '../calibration/HealthPage';
+import type { CalibrationRun } from '../calibration/calibrate';
 
 export function ClosePage({ id }: { id: string }) {
   const { data: ref } = useRefData();
@@ -18,6 +20,10 @@ export function ClosePage({ id }: { id: string }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [done, setDone] = useState<ClosedSummary | null>(null);
+  const [calib, setCalib] = useState<CalibrationRun | null | undefined>(undefined);
+  useEffect(() => {
+    if (done) repo.getExamCalibration(id).then(setCalib, () => setCalib(null));
+  }, [done, id]);
   const cfg = useMemo(() => analysisConfigFromSettings(ref?.settings ?? {}), [ref]);
   const names = useMemo(() => (ref ? makeNames(ref.indicators, ref.difficulties, ref.grades) : null), [ref]);
   const a = useMemo(() => (exam && exam.status === 'open' ? analyze(exam, scans, cfg) : null), [exam, scans, cfg]);
@@ -39,6 +45,12 @@ export function ClosePage({ id }: { id: string }) {
             <li>ลบคะแนนและคำตอบรายเลขที่ออกจากระบบแล้ว <b>{done.responsesDeleted}</b> เลขที่</li>
             <li>คะแนนเฉลี่ยของห้อง {fix(done.mean)} / {done.itemCount} (เก็บไว้เฉพาะค่ารวมของห้อง)</li>
           </ul>
+          {calib && (
+            <div className="report-section" data-testid="close-calibration" style={{ marginTop: 12 }}>
+              <h2>ปรับความยากของคลังจากผลสอบชุดนี้</h2>
+              <RunResult run={calib} levelName={(lid) => ref?.difficulties.find((d) => d.id === lid)?.nameTh ?? String(lid)} />
+            </div>
+          )}
           <div className="actions wrap">
             <a className="btn" href={href(`/exams/${exam.id}/report`)}>ดูสรุปที่เก็บไว้</a>
             <a className="btn ghost" href="#/exams">กลับไปรายการชุดข้อสอบ</a>

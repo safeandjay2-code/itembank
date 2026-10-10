@@ -1,0 +1,21 @@
+/* เฟส 7 — สุขภาพคลัง / ปรับความยาก */
+:root { --flag-low: #fbe9c7; --flag-neg: #f7d2cf; }
+@media (prefers-color-scheme: dark) { :root { --flag-low: #4a3a1b; --flag-neg: #5a2420; } }
+.chip.flag-low_r { background: var(--flag-low); }
+.chip.flag-negative_r { background: var(--flag-neg); color: var(--danger, #b3261e); font-weight: 700; }
+.calib-alert { border-left: 4px solid var(--warn); }
+.calib-alert p { margin: 4px 0; }
+.card.calib-alert { margin-bottom: 14px; border-left: 4px solid var(--warn); }
+.page-head + .card, .page-head + .error + .card { margin-top: 12px; }
+.calib-result .calib-alert { padding-left: 10px; }
+.calib-result { display: grid; gap: 10px; }
+ul.plain.compact { gap: 3px; margin: 4px 0 0; }
+.sub.inline { margin: 0; display: inline; font-size: .85rem; }
+.page-head .stat-value small, .cards .stat-value small { font-size: .9rem; font-weight: 400; color: var(--muted); }
+.health-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 0 16px; }
+.bars li.wide-label { grid-template-columns: minmax(110px, 1.2fr) minmax(0, 1fr) 44px; }
+table.report-table tr.moved-out td { background: var(--low-bg); }
+.calib-stats { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 0 0 8px; }
+.calib-stats b { font-variant-numeric: tabular-nums; }
+.progress { height: 10px; border-radius: 6px; background: var(--none-bg); overflow: hidden; margin: 4px 0 10px; }
+.progress span { display: block; height: 100%; background: var(--accent); }

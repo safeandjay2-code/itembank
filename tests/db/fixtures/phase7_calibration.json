@@ -1,0 +1,2479 @@
+{
+ "note": "สร้างโดย web/tests/unit/calibration-fixture.test.ts — ห้ามแก้ด้วยมือ",
+ "known": [
+  {
+   "name": "ง่าย p 0.20 แต่ n 49 → ยังไม่ย้าย",
+   "settings": {
+    "calibration.min_n_to_move": 50,
+    "calibration.buffer": 0.05,
+    "calibration.r_min_n": 50,
+    "calibration.r_flag_below": 0.2,
+    "calibration.same_grade_only": true
+   },
+   "current": 1,
+   "n": 49,
+   "n_correct": 10,
+   "n_r": 0,
+   "r_sum_milli": 0,
+   "expected": {
+    "target": null,
+    "direction": null,
+    "flag": null
+   }
+  },
+  {
+   "name": "ง่าย p 0.20 n 50 → ย้ายไปท้าทาย (ข้ามระดับได้)",
+   "settings": {
+    "calibration.min_n_to_move": 50,
+    "calibration.buffer": 0.05,
+    "calibration.r_min_n": 50,
+    "calibration.r_flag_below": 0.2,
+    "calibration.same_grade_only": true
+   },
+   "current": 1,
+   "n": 50,
+   "n_correct": 10,
+   "n_r": 0,
+   "r_sum_milli": 0,
+   "expected": {
+    "target": 4,
+    "direction": "harder",
+    "flag": null
+   }
+  },
+  {
+   "name": "ง่าย p 0.76 → อยู่ในกันชน ไม่ย้าย",
+   "settings": {
+    "calibration.min_n_to_move": 50,
+    "calibration.buffer": 0.05,
+    "calibration.r_min_n": 50,
+    "calibration.r_flag_below": 0.2,
+    "calibration.same_grade_only": true
+   },
+   "current": 1,
+   "n": 50,
+   "n_correct": 38,
+   "n_r": 0,
+   "r_sum_milli": 0,
+   "expected": {
+    "target": null,
+    "direction": null,
+    "flag": null
+   }
+  },
+  {
+   "name": "ง่าย p 0.75 พอดี → ยังไม่ย้าย (ต้องต่ำกว่า 0.75)",
+   "settings": {
+    "calibration.min_n_to_move": 50,
+    "calibration.buffer": 0.05,
+    "calibration.r_min_n": 50,
+    "calibration.r_flag_below": 0.2,
+    "calibration.same_grade_only": true
+   },
+   "current": 1,
+   "n": 100,
+   "n_correct": 75,
+   "n_r": 0,
+   "r_sum_milli": 0,
+   "expected": {
+    "target": null,
+    "direction": null,
+    "flag": null
+   }
+  },
+  {
+   "name": "ง่าย p 0.74 → ลงปานกลาง",
+   "settings": {
+    "calibration.min_n_to_move": 50,
+    "calibration.buffer": 0.05,
+    "calibration.r_min_n": 50,
+    "calibration.r_flag_below": 0.2,
+    "calibration.same_grade_only": true
+   },
+   "current": 1,
+   "n": 50,
+   "n_correct": 37,
+   "n_r": 0,
+   "r_sum_milli": 0,
+   "expected": {
+    "target": 2,
+    "direction": "harder",
+    "flag": null
+   }
+  },
+  {
+   "name": "ปานกลาง p 0.85 พอดี → ยังไม่ขึ้น",
+   "settings": {
+    "calibration.min_n_to_move": 50,
+    "calibration.buffer": 0.05,
+    "calibration.r_min_n": 50,
+    "calibration.r_flag_below": 0.2,
+    "calibration.same_grade_only": true
+   },
+   "current": 2,
+   "n": 100,
+   "n_correct": 85,
+   "n_r": 0,
+   "r_sum_milli": 0,
+   "expected": {
+    "target": null,
+    "direction": null,
+    "flag": null
+   }
+  },
+  {
+   "name": "ปานกลาง p 0.86 → ขึ้นง่าย",
+   "settings": {
+    "calibration.min_n_to_move": 50,
+    "calibration.buffer": 0.05,
+    "calibration.r_min_n": 50,
+    "calibration.r_flag_below": 0.2,
+    "calibration.same_grade_only": true
+   },
+   "current": 2,
+   "n": 50,
+   "n_correct": 43,
+   "n_r": 0,
+   "r_sum_milli": 0,
+   "expected": {
+    "target": 1,
+    "direction": "easier",
+    "flag": null
+   }
+  },
+  {
+   "name": "ปานกลาง p 0.82 → อยู่ในกันชน",
+   "settings": {
+    "calibration.min_n_to_move": 50,
+    "calibration.buffer": 0.05,
+    "calibration.r_min_n": 50,
+    "calibration.r_flag_below": 0.2,
+    "calibration.same_grade_only": true
+   },
+   "current": 2,
+   "n": 50,
+   "n_correct": 41,
+   "n_r": 0,
+   "r_sum_milli": 0,
+   "expected": {
+    "target": null,
+    "direction": null,
+    "flag": null
+   }
+  },
+  {
+   "name": "ปานกลาง p 0.45 พอดี → ไม่ย้าย",
+   "settings": {
+    "calibration.min_n_to_move": 50,
+    "calibration.buffer": 0.05,
+    "calibration.r_min_n": 50,
+    "calibration.r_flag_below": 0.2,
+    "calibration.same_grade_only": true
+   },
+   "current": 2,
+   "n": 100,
+   "n_correct": 45,
+   "n_r": 0,
+   "r_sum_milli": 0,
+   "expected": {
+    "target": null,
+    "direction": null,
+    "flag": null
+   }
+  },
+  {
+   "name": "ปานกลาง p 0.44 → ลงยาก",
+   "settings": {
+    "calibration.min_n_to_move": 50,
+    "calibration.buffer": 0.05,
+    "calibration.r_min_n": 50,
+    "calibration.r_flag_below": 0.2,
+    "calibration.same_grade_only": true
+   },
+   "current": 2,
+   "n": 50,
+   "n_correct": 22,
+   "n_r": 0,
+   "r_sum_milli": 0,
+   "expected": {
+    "target": 3,
+    "direction": "harder",
+    "flag": null
+   }
+  },
+  {
+   "name": "ยาก p 0.55 พอดี → ไม่ย้าย",
+   "settings": {
+    "calibration.min_n_to_move": 50,
+    "calibration.buffer": 0.05,
+    "calibration.r_min_n": 50,
+    "calibration.r_flag_below": 0.2,
+    "calibration.same_grade_only": true
+   },
+   "current": 3,
+   "n": 100,
+   "n_correct": 55,
+   "n_r": 0,
+   "r_sum_milli": 0,
+   "expected": {
+    "target": null,
+    "direction": null,
+    "flag": null
+   }
+  },
+  {
+   "name": "ยาก p 0.56 → ขึ้นปานกลาง",
+   "settings": {
+    "calibration.min_n_to_move": 50,
+    "calibration.buffer": 0.05,
+    "calibration.r_min_n": 50,
+    "calibration.r_flag_below": 0.2,
+    "calibration.same_grade_only": true
+   },
+   "current": 3,
+   "n": 50,
+   "n_correct": 28,
+   "n_r": 0,
+   "r_sum_milli": 0,
+   "expected": {
+    "target": 2,
+    "direction": "easier",
+    "flag": null
+   }
+  },
+  {
+   "name": "ยาก p 0.20 พอดี → ไม่ย้าย",
+   "settings": {
+    "calibration.min_n_to_move": 50,
+    "calibration.buffer": 0.05,
+    "calibration.r_min_n": 50,
+    "calibration.r_flag_below": 0.2,
+    "calibration.same_grade_only": true
+   },
+   "current": 3,
+   "n": 100,
+   "n_correct": 20,
+   "n_r": 0,
+   "r_sum_milli": 0,
+   "expected": {
+    "target": null,
+    "direction": null,
+    "flag": null
+   }
+  },
+  {
+   "name": "ยาก p 0.19 → ลงท้าทาย",
+   "settings": {
+    "calibration.min_n_to_move": 50,
+    "calibration.buffer": 0.05,
+    "calibration.r_min_n": 50,
+    "calibration.r_flag_below": 0.2,
+    "calibration.same_grade_only": true
+   },
+   "current": 3,
+   "n": 100,
+   "n_correct": 19,
+   "n_r": 0,
+   "r_sum_milli": 0,
+   "expected": {
+    "target": 4,
+    "direction": "harder",
+    "flag": null
+   }
+  },
+  {
+   "name": "ท้าทาย p 0.30 พอดี → ไม่ย้าย",
+   "settings": {
+    "calibration.min_n_to_move": 50,
+    "calibration.buffer": 0.05,
+    "calibration.r_min_n": 50,
+    "calibration.r_flag_below": 0.2,
+    "calibration.same_grade_only": true
+   },
+   "current": 4,
+   "n": 100,
+   "n_correct": 30,
+   "n_r": 0,
+   "r_sum_milli": 0,
+   "expected": {
+    "target": null,
+    "direction": null,
+    "flag": null
+   }
+  },
+  {
+   "name": "ท้าทาย p 0.31 → ขึ้นยาก",
+   "settings": {
+    "calibration.min_n_to_move": 50,
+    "calibration.buffer": 0.05,
+    "calibration.r_min_n": 50,
+    "calibration.r_flag_below": 0.2,
+    "calibration.same_grade_only": true
+   },
+   "current": 4,
+   "n": 100,
+   "n_correct": 31,
+   "n_r": 0,
+   "r_sum_milli": 0,
+   "expected": {
+    "target": 3,
+    "direction": "easier",
+    "flag": null
+   }
+  },
+  {
+   "name": "ท้าทาย p 0 → อยู่ระดับยากสุดแล้ว",
+   "settings": {
+    "calibration.min_n_to_move": 50,
+    "calibration.buffer": 0.05,
+    "calibration.r_min_n": 50,
+    "calibration.r_flag_below": 0.2,
+    "calibration.same_grade_only": true
+   },
+   "current": 4,
+   "n": 60,
+   "n_correct": 0,
+   "n_r": 0,
+   "r_sum_milli": 0,
+   "expected": {
+    "target": null,
+    "direction": null,
+    "flag": null
+   }
+  },
+  {
+   "name": "ง่าย p 1.00 → อยู่ระดับง่ายสุดแล้ว",
+   "settings": {
+    "calibration.min_n_to_move": 50,
+    "calibration.buffer": 0.05,
+    "calibration.r_min_n": 50,
+    "calibration.r_flag_below": 0.2,
+    "calibration.same_grade_only": true
+   },
+   "current": 1,
+   "n": 60,
+   "n_correct": 60,
+   "n_r": 0,
+   "r_sum_milli": 0,
+   "expected": {
+    "target": null,
+    "direction": null,
+    "flag": null
+   }
+  },
+  {
+   "name": "ปานกลาง p 0.25 พอดี → ท้าทาย (0.25 ไม่ถึง \"ยาก\")",
+   "settings": {
+    "calibration.min_n_to_move": 50,
+    "calibration.buffer": 0.05,
+    "calibration.r_min_n": 50,
+    "calibration.r_flag_below": 0.2,
+    "calibration.same_grade_only": true
+   },
+   "current": 2,
+   "n": 100,
+   "n_correct": 25,
+   "n_r": 0,
+   "r_sum_milli": 0,
+   "expected": {
+    "target": 4,
+    "direction": "harder",
+    "flag": null
+   }
+  },
+  {
+   "name": "ท้าทาย p 0.80 พอดี → ปานกลาง (0.80 ยังไม่ \"ง่าย\")",
+   "settings": {
+    "calibration.min_n_to_move": 50,
+    "calibration.buffer": 0.05,
+    "calibration.r_min_n": 50,
+    "calibration.r_flag_below": 0.2,
+    "calibration.same_grade_only": true
+   },
+   "current": 4,
+   "n": 100,
+   "n_correct": 80,
+   "n_r": 0,
+   "r_sum_milli": 0,
+   "expected": {
+    "target": 2,
+    "direction": "easier",
+    "flag": null
+   }
+  },
+  {
+   "name": "ท้าทาย p 0.90 → ง่าย",
+   "settings": {
+    "calibration.min_n_to_move": 50,
+    "calibration.buffer": 0.05,
+    "calibration.r_min_n": 50,
+    "calibration.r_flag_below": 0.2,
+    "calibration.same_grade_only": true
+   },
+   "current": 4,
+   "n": 50,
+   "n_correct": 45,
+   "n_r": 0,
+   "r_sum_milli": 0,
+   "expected": {
+    "target": 1,
+    "direction": "easier",
+    "flag": null
+   }
+  },
+  {
+   "name": "r −0.10 n 50 → ต้องแก้ด่วน",
+   "settings": {
+    "calibration.min_n_to_move": 50,
+    "calibration.buffer": 0.05,
+    "calibration.r_min_n": 50,
+    "calibration.r_flag_below": 0.2,
+    "calibration.same_grade_only": true
+   },
+   "current": 2,
+   "n": 50,
+   "n_correct": 30,
+   "n_r": 50,
+   "r_sum_milli": -5000,
+   "expected": {
+    "target": null,
+    "direction": null,
+    "flag": "negative_r"
+   }
+  },
+  {
+   "name": "r −0.50 แต่ n ของ r 49 → ยังไม่ตัดสิน",
+   "settings": {
+    "calibration.min_n_to_move": 50,
+    "calibration.buffer": 0.05,
+    "calibration.r_min_n": 50,
+    "calibration.r_flag_below": 0.2,
+    "calibration.same_grade_only": true
+   },
+   "current": 2,
+   "n": 80,
+   "n_correct": 48,
+   "n_r": 49,
+   "r_sum_milli": -24500,
+   "expected": {
+    "target": null,
+    "direction": null,
+    "flag": null
+   }
+  },
+  {
+   "name": "r 0.199 → ต้องแก้ (ยังสุ่มได้)",
+   "settings": {
+    "calibration.min_n_to_move": 50,
+    "calibration.buffer": 0.05,
+    "calibration.r_min_n": 50,
+    "calibration.r_flag_below": 0.2,
+    "calibration.same_grade_only": true
+   },
+   "current": 2,
+   "n": 50,
+   "n_correct": 30,
+   "n_r": 50,
+   "r_sum_milli": 9950,
+   "expected": {
+    "target": null,
+    "direction": null,
+    "flag": "low_r"
+   }
+  },
+  {
+   "name": "r 0.20 พอดี → ไม่ติดป้าย",
+   "settings": {
+    "calibration.min_n_to_move": 50,
+    "calibration.buffer": 0.05,
+    "calibration.r_min_n": 50,
+    "calibration.r_flag_below": 0.2,
+    "calibration.same_grade_only": true
+   },
+   "current": 2,
+   "n": 50,
+   "n_correct": 30,
+   "n_r": 50,
+   "r_sum_milli": 10000,
+   "expected": {
+    "target": null,
+    "direction": null,
+    "flag": null
+   }
+  },
+  {
+   "name": "r 0 พอดี → ต้องแก้ (ไม่ติดลบ)",
+   "settings": {
+    "calibration.min_n_to_move": 50,
+    "calibration.buffer": 0.05,
+    "calibration.r_min_n": 50,
+    "calibration.r_flag_below": 0.2,
+    "calibration.same_grade_only": true
+   },
+   "current": 2,
+   "n": 50,
+   "n_correct": 30,
+   "n_r": 50,
+   "r_sum_milli": 0,
+   "expected": {
+    "target": null,
+    "direction": null,
+    "flag": "low_r"
+   }
+  },
+  {
+   "name": "ย้ายระดับ + r ติดลบพร้อมกัน",
+   "settings": {
+    "calibration.min_n_to_move": 50,
+    "calibration.buffer": 0.05,
+    "calibration.r_min_n": 50,
+    "calibration.r_flag_below": 0.2,
+    "calibration.same_grade_only": true
+   },
+   "current": 1,
+   "n": 60,
+   "n_correct": 30,
+   "n_r": 60,
+   "r_sum_milli": -3000,
+   "expected": {
+    "target": 3,
+    "direction": "harder",
+    "flag": "negative_r"
+   }
+  },
+  {
+   "name": "กันชน 0: ง่าย p 0.79 → ปานกลาง",
+   "settings": {
+    "calibration.min_n_to_move": 50,
+    "calibration.buffer": 0,
+    "calibration.r_min_n": 50,
+    "calibration.r_flag_below": 0.2,
+    "calibration.same_grade_only": true
+   },
+   "current": 1,
+   "n": 100,
+   "n_correct": 79,
+   "n_r": 0,
+   "r_sum_milli": 0,
+   "expected": {
+    "target": 2,
+    "direction": "harder",
+    "flag": null
+   }
+  },
+  {
+   "name": "กันชน 0: ง่าย p 0.80 พอดี → ไม่ย้าย",
+   "settings": {
+    "calibration.min_n_to_move": 50,
+    "calibration.buffer": 0,
+    "calibration.r_min_n": 50,
+    "calibration.r_flag_below": 0.2,
+    "calibration.same_grade_only": true
+   },
+   "current": 1,
+   "n": 100,
+   "n_correct": 80,
+   "n_r": 0,
+   "r_sum_milli": 0,
+   "expected": {
+    "target": null,
+    "direction": null,
+    "flag": null
+   }
+  },
+  {
+   "name": "กันชน 0.10: ปานกลาง p 0.89 → ไม่ย้าย",
+   "settings": {
+    "calibration.min_n_to_move": 50,
+    "calibration.buffer": 0.1,
+    "calibration.r_min_n": 50,
+    "calibration.r_flag_below": 0.2,
+    "calibration.same_grade_only": true
+   },
+   "current": 2,
+   "n": 100,
+   "n_correct": 89,
+   "n_r": 0,
+   "r_sum_milli": 0,
+   "expected": {
+    "target": null,
+    "direction": null,
+    "flag": null
+   }
+  },
+  {
+   "name": "เกณฑ์ n 30: ยาก p 0.60 n 30 → ปานกลาง",
+   "settings": {
+    "calibration.min_n_to_move": 30,
+    "calibration.buffer": 0.05,
+    "calibration.r_min_n": 50,
+    "calibration.r_flag_below": 0.2,
+    "calibration.same_grade_only": true
+   },
+   "current": 3,
+   "n": 30,
+   "n_correct": 18,
+   "n_r": 0,
+   "r_sum_milli": 0,
+   "expected": {
+    "target": 2,
+    "direction": "easier",
+    "flag": null
+   }
+  },
+  {
+   "name": "เกณฑ์ r 0.30 / n 20: r 0.25 → ต้องแก้",
+   "settings": {
+    "calibration.min_n_to_move": 50,
+    "calibration.buffer": 0.05,
+    "calibration.r_min_n": 20,
+    "calibration.r_flag_below": 0.3,
+    "calibration.same_grade_only": true
+   },
+   "current": 3,
+   "n": 20,
+   "n_correct": 8,
+   "n_r": 20,
+   "r_sum_milli": 5000,
+   "expected": {
+    "target": null,
+    "direction": null,
+    "flag": "low_r"
+   }
+  }
+ ],
+ "simulations": [
+  {
+   "name": "จำลอง seed 11",
+   "item_id": "00000000-0000-4000-c700-000000000001",
+   "grade_id": "P4",
+   "start": 2,
+   "settings": {
+    "calibration.min_n_to_move": 50,
+    "calibration.buffer": 0.05,
+    "calibration.r_min_n": 50,
+    "calibration.r_flag_below": 0.2,
+    "calibration.same_grade_only": true
+   },
+   "rounds": [
+    {
+     "version": 1,
+     "grade_id": "P4",
+     "n": 27,
+     "n_correct": 27,
+     "r": 0.487,
+     "bump": false,
+     "expected": {
+      "difficulty": 2,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P6",
+     "n": 22,
+     "n_correct": 22,
+     "r": 0.314,
+     "bump": false,
+     "expected": {
+      "difficulty": 2,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P4",
+     "n": 26,
+     "n_correct": 23,
+     "r": 0.392,
+     "bump": false,
+     "expected": {
+      "difficulty": 1,
+      "flag": null,
+      "status": "active",
+      "moved": true
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P6",
+     "n": 27,
+     "n_correct": 27,
+     "r": 0.413,
+     "bump": false,
+     "expected": {
+      "difficulty": 1,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P4",
+     "n": 32,
+     "n_correct": 30,
+     "r": 0.576,
+     "bump": false,
+     "expected": {
+      "difficulty": 1,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P5",
+     "n": 36,
+     "n_correct": 36,
+     "r": 0.365,
+     "bump": false,
+     "expected": {
+      "difficulty": 1,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P4",
+     "n": 20,
+     "n_correct": 19,
+     "r": 0.458,
+     "bump": false,
+     "expected": {
+      "difficulty": 1,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P4",
+     "n": 32,
+     "n_correct": 26,
+     "r": 0.471,
+     "bump": false,
+     "expected": {
+      "difficulty": 1,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P4",
+     "n": 28,
+     "n_correct": 26,
+     "r": 0.576,
+     "bump": false,
+     "expected": {
+      "difficulty": 1,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P4",
+     "n": 35,
+     "n_correct": 31,
+     "r": 0.418,
+     "bump": false,
+     "expected": {
+      "difficulty": 1,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    }
+   ]
+  },
+  {
+   "name": "จำลอง seed 12",
+   "item_id": "00000000-0000-4000-c700-000000000002",
+   "grade_id": "P5",
+   "start": 1,
+   "settings": {
+    "calibration.min_n_to_move": 50,
+    "calibration.buffer": 0.05,
+    "calibration.r_min_n": 50,
+    "calibration.r_flag_below": 0.2,
+    "calibration.same_grade_only": true
+   },
+   "rounds": [
+    {
+     "version": 1,
+     "grade_id": "P4",
+     "n": 23,
+     "n_correct": 10,
+     "r": 0.37,
+     "bump": false,
+     "expected": {
+      "difficulty": 1,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P5",
+     "n": 19,
+     "n_correct": 10,
+     "r": 0.294,
+     "bump": false,
+     "expected": {
+      "difficulty": 1,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P5",
+     "n": 25,
+     "n_correct": 9,
+     "r": 0.311,
+     "bump": false,
+     "expected": {
+      "difficulty": 1,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P5",
+     "n": 34,
+     "n_correct": 14,
+     "r": 0.463,
+     "bump": false,
+     "expected": {
+      "difficulty": 3,
+      "flag": null,
+      "status": "active",
+      "moved": true
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P5",
+     "n": 22,
+     "n_correct": 9,
+     "r": 0.395,
+     "bump": false,
+     "expected": {
+      "difficulty": 3,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P5",
+     "n": 20,
+     "n_correct": 7,
+     "r": 0.434,
+     "bump": false,
+     "expected": {
+      "difficulty": 3,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P5",
+     "n": 29,
+     "n_correct": 8,
+     "r": 0.397,
+     "bump": false,
+     "expected": {
+      "difficulty": 3,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P5",
+     "n": 30,
+     "n_correct": 9,
+     "r": 0.266,
+     "bump": false,
+     "expected": {
+      "difficulty": 3,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P6",
+     "n": 18,
+     "n_correct": 6,
+     "r": 0.431,
+     "bump": false,
+     "expected": {
+      "difficulty": 3,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P5",
+     "n": 29,
+     "n_correct": 6,
+     "r": 0.394,
+     "bump": false,
+     "expected": {
+      "difficulty": 3,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    }
+   ]
+  },
+  {
+   "name": "จำลอง seed 13",
+   "item_id": "00000000-0000-4000-c700-000000000003",
+   "grade_id": "P6",
+   "start": 2,
+   "settings": {
+    "calibration.min_n_to_move": 50,
+    "calibration.buffer": 0.05,
+    "calibration.r_min_n": 50,
+    "calibration.r_flag_below": 0.2,
+    "calibration.same_grade_only": true
+   },
+   "rounds": [
+    {
+     "version": 1,
+     "grade_id": "P6",
+     "n": 28,
+     "n_correct": 9,
+     "r": 0.237,
+     "bump": false,
+     "expected": {
+      "difficulty": 2,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P6",
+     "n": 35,
+     "n_correct": 6,
+     "r": 0.359,
+     "bump": false,
+     "expected": {
+      "difficulty": 4,
+      "flag": null,
+      "status": "active",
+      "moved": true
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P6",
+     "n": 35,
+     "n_correct": 3,
+     "r": 0.162,
+     "bump": false,
+     "expected": {
+      "difficulty": 4,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P6",
+     "n": 19,
+     "n_correct": 5,
+     "r": 0.303,
+     "bump": false,
+     "expected": {
+      "difficulty": 4,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P6",
+     "n": 36,
+     "n_correct": 2,
+     "r": 0.188,
+     "bump": false,
+     "expected": {
+      "difficulty": 4,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P5",
+     "n": 31,
+     "n_correct": 9,
+     "r": 0.26,
+     "bump": false,
+     "expected": {
+      "difficulty": 4,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P6",
+     "n": 34,
+     "n_correct": 7,
+     "r": 0.395,
+     "bump": false,
+     "expected": {
+      "difficulty": 4,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P4",
+     "n": 36,
+     "n_correct": 11,
+     "r": 0.396,
+     "bump": false,
+     "expected": {
+      "difficulty": 4,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P6",
+     "n": 36,
+     "n_correct": 5,
+     "r": 0.295,
+     "bump": false,
+     "expected": {
+      "difficulty": 4,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P6",
+     "n": 27,
+     "n_correct": 2,
+     "r": 0.157,
+     "bump": false,
+     "expected": {
+      "difficulty": 4,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    }
+   ]
+  },
+  {
+   "name": "จำลอง seed 14",
+   "item_id": "00000000-0000-4000-c700-000000000004",
+   "grade_id": "P4",
+   "start": 1,
+   "settings": {
+    "calibration.min_n_to_move": 50,
+    "calibration.buffer": 0.05,
+    "calibration.r_min_n": 50,
+    "calibration.r_flag_below": 0.2,
+    "calibration.same_grade_only": true
+   },
+   "rounds": [
+    {
+     "version": 1,
+     "grade_id": "P4",
+     "n": 26,
+     "n_correct": 21,
+     "r": 0.215,
+     "bump": false,
+     "expected": {
+      "difficulty": 1,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P4",
+     "n": 30,
+     "n_correct": 26,
+     "r": 0.362,
+     "bump": false,
+     "expected": {
+      "difficulty": 1,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P4",
+     "n": 29,
+     "n_correct": 22,
+     "r": 0.373,
+     "bump": false,
+     "expected": {
+      "difficulty": 1,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P5",
+     "n": 24,
+     "n_correct": 22,
+     "r": 0.353,
+     "bump": false,
+     "expected": {
+      "difficulty": 1,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P4",
+     "n": 18,
+     "n_correct": 12,
+     "r": 0.22,
+     "bump": false,
+     "expected": {
+      "difficulty": 1,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P4",
+     "n": 21,
+     "n_correct": 14,
+     "r": 0.386,
+     "bump": false,
+     "expected": {
+      "difficulty": 1,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P4",
+     "n": 24,
+     "n_correct": 20,
+     "r": 0.462,
+     "bump": false,
+     "expected": {
+      "difficulty": 1,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P4",
+     "n": 24,
+     "n_correct": 21,
+     "r": 0.252,
+     "bump": false,
+     "expected": {
+      "difficulty": 1,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P4",
+     "n": 26,
+     "n_correct": 20,
+     "r": 0.268,
+     "bump": false,
+     "expected": {
+      "difficulty": 1,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P4",
+     "n": 34,
+     "n_correct": 28,
+     "r": 0.341,
+     "bump": false,
+     "expected": {
+      "difficulty": 1,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    }
+   ]
+  },
+  {
+   "name": "จำลอง seed 15",
+   "item_id": "00000000-0000-4000-c700-000000000005",
+   "grade_id": "P5",
+   "start": 2,
+   "settings": {
+    "calibration.min_n_to_move": 50,
+    "calibration.buffer": 0.05,
+    "calibration.r_min_n": 50,
+    "calibration.r_flag_below": 0.2,
+    "calibration.same_grade_only": true
+   },
+   "rounds": [
+    {
+     "version": 1,
+     "grade_id": "P5",
+     "n": 22,
+     "n_correct": 16,
+     "r": 0.271,
+     "bump": false,
+     "expected": {
+      "difficulty": 2,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P5",
+     "n": 20,
+     "n_correct": 9,
+     "r": 0.366,
+     "bump": false,
+     "expected": {
+      "difficulty": 2,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P5",
+     "n": 31,
+     "n_correct": 13,
+     "r": 0.289,
+     "bump": false,
+     "expected": {
+      "difficulty": 2,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P5",
+     "n": 22,
+     "n_correct": 16,
+     "r": 0.219,
+     "bump": false,
+     "expected": {
+      "difficulty": 2,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P5",
+     "n": 23,
+     "n_correct": 11,
+     "r": 0.4,
+     "bump": false,
+     "expected": {
+      "difficulty": 2,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P4",
+     "n": 34,
+     "n_correct": 24,
+     "r": 0.423,
+     "bump": false,
+     "expected": {
+      "difficulty": 2,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P5",
+     "n": 33,
+     "n_correct": 20,
+     "r": 0.286,
+     "bump": false,
+     "expected": {
+      "difficulty": 2,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P5",
+     "n": 27,
+     "n_correct": 17,
+     "r": 0.357,
+     "bump": false,
+     "expected": {
+      "difficulty": 2,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P4",
+     "n": 32,
+     "n_correct": 21,
+     "r": 0.377,
+     "bump": false,
+     "expected": {
+      "difficulty": 2,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P5",
+     "n": 32,
+     "n_correct": 14,
+     "r": 0.291,
+     "bump": false,
+     "expected": {
+      "difficulty": 2,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    }
+   ]
+  },
+  {
+   "name": "จำลอง seed 16",
+   "item_id": "00000000-0000-4000-c700-000000000006",
+   "grade_id": "P6",
+   "start": 2,
+   "settings": {
+    "calibration.min_n_to_move": 50,
+    "calibration.buffer": 0.05,
+    "calibration.r_min_n": 50,
+    "calibration.r_flag_below": 0.2,
+    "calibration.same_grade_only": true
+   },
+   "rounds": [
+    {
+     "version": 1,
+     "grade_id": "P6",
+     "n": 29,
+     "n_correct": 18,
+     "r": -0.307,
+     "bump": false,
+     "expected": {
+      "difficulty": 2,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P6",
+     "n": 35,
+     "n_correct": 22,
+     "r": -0.175,
+     "bump": false,
+     "expected": {
+      "difficulty": 2,
+      "flag": "negative_r",
+      "status": "needs_fix",
+      "moved": false
+     }
+    }
+   ]
+  },
+  {
+   "name": "จำลอง seed 17",
+   "item_id": "00000000-0000-4000-c700-000000000007",
+   "grade_id": "P4",
+   "start": 2,
+   "settings": {
+    "calibration.min_n_to_move": 50,
+    "calibration.buffer": 0.05,
+    "calibration.r_min_n": 50,
+    "calibration.r_flag_below": 0.2,
+    "calibration.same_grade_only": true
+   },
+   "rounds": [
+    {
+     "version": 1,
+     "grade_id": "P4",
+     "n": 30,
+     "n_correct": 19,
+     "r": 0.019,
+     "bump": false,
+     "expected": {
+      "difficulty": 2,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P4",
+     "n": 33,
+     "n_correct": 18,
+     "r": 0.116,
+     "bump": false,
+     "expected": {
+      "difficulty": 2,
+      "flag": "low_r",
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P4",
+     "n": 30,
+     "n_correct": 20,
+     "r": 0.111,
+     "bump": false,
+     "expected": {
+      "difficulty": 2,
+      "flag": "low_r",
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P4",
+     "n": 28,
+     "n_correct": 20,
+     "r": -0.044,
+     "bump": false,
+     "expected": {
+      "difficulty": 2,
+      "flag": "low_r",
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P4",
+     "n": 34,
+     "n_correct": 24,
+     "r": 0.101,
+     "bump": false,
+     "expected": {
+      "difficulty": 2,
+      "flag": "low_r",
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P4",
+     "n": 22,
+     "n_correct": 17,
+     "r": 0.184,
+     "bump": false,
+     "expected": {
+      "difficulty": 2,
+      "flag": "low_r",
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P4",
+     "n": 30,
+     "n_correct": 21,
+     "r": 0.034,
+     "bump": false,
+     "expected": {
+      "difficulty": 2,
+      "flag": "low_r",
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P6",
+     "n": 33,
+     "n_correct": 27,
+     "r": 0.046,
+     "bump": false,
+     "expected": {
+      "difficulty": 2,
+      "flag": "low_r",
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P4",
+     "n": 31,
+     "n_correct": 15,
+     "r": 0.051,
+     "bump": false,
+     "expected": {
+      "difficulty": 2,
+      "flag": "low_r",
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P4",
+     "n": 28,
+     "n_correct": 14,
+     "r": 0.236,
+     "bump": false,
+     "expected": {
+      "difficulty": 2,
+      "flag": "low_r",
+      "status": "active",
+      "moved": false
+     }
+    }
+   ]
+  },
+  {
+   "name": "จำลอง seed 18",
+   "item_id": "00000000-0000-4000-c700-000000000008",
+   "grade_id": "P5",
+   "start": 3,
+   "settings": {
+    "calibration.min_n_to_move": 50,
+    "calibration.buffer": 0.05,
+    "calibration.r_min_n": 50,
+    "calibration.r_flag_below": 0.2,
+    "calibration.same_grade_only": true
+   },
+   "rounds": [
+    {
+     "version": 1,
+     "grade_id": "P5",
+     "n": 25,
+     "n_correct": 24,
+     "r": 0.411,
+     "bump": false,
+     "expected": {
+      "difficulty": 3,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P6",
+     "n": 33,
+     "n_correct": 33,
+     "r": 0.57,
+     "bump": false,
+     "expected": {
+      "difficulty": 3,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P5",
+     "n": 36,
+     "n_correct": 29,
+     "r": 0.37,
+     "bump": false,
+     "expected": {
+      "difficulty": 1,
+      "flag": null,
+      "status": "active",
+      "moved": true
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P4",
+     "n": 22,
+     "n_correct": 22,
+     "r": 0.464,
+     "bump": false,
+     "expected": {
+      "difficulty": 1,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P4",
+     "n": 26,
+     "n_correct": 26,
+     "r": 0.471,
+     "bump": false,
+     "expected": {
+      "difficulty": 1,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P5",
+     "n": 28,
+     "n_correct": 26,
+     "r": 0.388,
+     "bump": false,
+     "expected": {
+      "difficulty": 1,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P4",
+     "n": 24,
+     "n_correct": 24,
+     "r": 0.472,
+     "bump": false,
+     "expected": {
+      "difficulty": 1,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P5",
+     "n": 36,
+     "n_correct": 34,
+     "r": 0.526,
+     "bump": false,
+     "expected": {
+      "difficulty": 1,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P5",
+     "n": 22,
+     "n_correct": 19,
+     "r": 0.468,
+     "bump": false,
+     "expected": {
+      "difficulty": 1,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P5",
+     "n": 19,
+     "n_correct": 17,
+     "r": 0.447,
+     "bump": false,
+     "expected": {
+      "difficulty": 1,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    }
+   ]
+  },
+  {
+   "name": "จำลอง seed 19",
+   "item_id": "00000000-0000-4000-c700-000000000009",
+   "grade_id": "P6",
+   "start": 2,
+   "settings": {
+    "calibration.min_n_to_move": 50,
+    "calibration.buffer": 0.05,
+    "calibration.r_min_n": 50,
+    "calibration.r_flag_below": 0.2,
+    "calibration.same_grade_only": true
+   },
+   "rounds": [
+    {
+     "version": 1,
+     "grade_id": "P6",
+     "n": 19,
+     "n_correct": 3,
+     "r": 0.009,
+     "bump": false,
+     "expected": {
+      "difficulty": 2,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P6",
+     "n": 19,
+     "n_correct": 7,
+     "r": 0.038,
+     "bump": false,
+     "expected": {
+      "difficulty": 2,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P4",
+     "n": 34,
+     "n_correct": 16,
+     "r": 0.225,
+     "bump": false,
+     "expected": {
+      "difficulty": 2,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P6",
+     "n": 20,
+     "n_correct": 5,
+     "r": 0.203,
+     "bump": false,
+     "expected": {
+      "difficulty": 3,
+      "flag": "low_r",
+      "status": "active",
+      "moved": true
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P6",
+     "n": 33,
+     "n_correct": 12,
+     "r": -0.012,
+     "bump": false,
+     "expected": {
+      "difficulty": 3,
+      "flag": "low_r",
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 2,
+     "grade_id": "P6",
+     "n": 35,
+     "n_correct": 28,
+     "r": 0.058,
+     "bump": true,
+     "expected": {
+      "difficulty": 3,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 2,
+     "grade_id": "P6",
+     "n": 33,
+     "n_correct": 26,
+     "r": 0.144,
+     "bump": false,
+     "expected": {
+      "difficulty": 2,
+      "flag": "low_r",
+      "status": "active",
+      "moved": true
+     }
+    },
+    {
+     "version": 2,
+     "grade_id": "P5",
+     "n": 22,
+     "n_correct": 22,
+     "r": 0.177,
+     "bump": false,
+     "expected": {
+      "difficulty": 2,
+      "flag": "low_r",
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 2,
+     "grade_id": "P6",
+     "n": 32,
+     "n_correct": 28,
+     "r": 0.249,
+     "bump": false,
+     "expected": {
+      "difficulty": 2,
+      "flag": "low_r",
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 2,
+     "grade_id": "P6",
+     "n": 24,
+     "n_correct": 17,
+     "r": 0.221,
+     "bump": false,
+     "expected": {
+      "difficulty": 2,
+      "flag": "low_r",
+      "status": "active",
+      "moved": false
+     }
+    }
+   ]
+  },
+  {
+   "name": "จำลอง seed 20",
+   "item_id": "00000000-0000-4000-c700-000000000010",
+   "grade_id": "P4",
+   "start": 3,
+   "settings": {
+    "calibration.min_n_to_move": 50,
+    "calibration.buffer": 0,
+    "calibration.r_min_n": 50,
+    "calibration.r_flag_below": 0.2,
+    "calibration.same_grade_only": true
+   },
+   "rounds": [
+    {
+     "version": 1,
+     "grade_id": "P4",
+     "n": 32,
+     "n_correct": 8,
+     "r": 0.15,
+     "bump": false,
+     "expected": {
+      "difficulty": 3,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P4",
+     "n": 19,
+     "n_correct": 3,
+     "r": 0.239,
+     "bump": false,
+     "expected": {
+      "difficulty": 4,
+      "flag": "low_r",
+      "status": "active",
+      "moved": true
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P4",
+     "n": 29,
+     "n_correct": 4,
+     "r": 0.134,
+     "bump": false,
+     "expected": {
+      "difficulty": 4,
+      "flag": "low_r",
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P4",
+     "n": 21,
+     "n_correct": 4,
+     "r": 0.193,
+     "bump": false,
+     "expected": {
+      "difficulty": 4,
+      "flag": "low_r",
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P4",
+     "n": 19,
+     "n_correct": 5,
+     "r": 0.137,
+     "bump": false,
+     "expected": {
+      "difficulty": 4,
+      "flag": "low_r",
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P4",
+     "n": 22,
+     "n_correct": 5,
+     "r": 0.311,
+     "bump": false,
+     "expected": {
+      "difficulty": 4,
+      "flag": "low_r",
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P4",
+     "n": 33,
+     "n_correct": 5,
+     "r": 0.374,
+     "bump": false,
+     "expected": {
+      "difficulty": 4,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P4",
+     "n": 24,
+     "n_correct": 5,
+     "r": 0.13,
+     "bump": false,
+     "expected": {
+      "difficulty": 4,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P4",
+     "n": 25,
+     "n_correct": 5,
+     "r": 0.224,
+     "bump": false,
+     "expected": {
+      "difficulty": 4,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P4",
+     "n": 33,
+     "n_correct": 6,
+     "r": 0.163,
+     "bump": false,
+     "expected": {
+      "difficulty": 4,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    }
+   ]
+  },
+  {
+   "name": "จำลอง seed 21",
+   "item_id": "00000000-0000-4000-c700-000000000011",
+   "grade_id": "P5",
+   "start": 4,
+   "settings": {
+    "calibration.min_n_to_move": 50,
+    "calibration.buffer": 0.05,
+    "calibration.r_min_n": 50,
+    "calibration.r_flag_below": 0.2,
+    "calibration.same_grade_only": true
+   },
+   "rounds": [
+    {
+     "version": 1,
+     "grade_id": "P5",
+     "n": 26,
+     "n_correct": 26,
+     "r": 0.195,
+     "bump": false,
+     "expected": {
+      "difficulty": 4,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P5",
+     "n": 29,
+     "n_correct": 29,
+     "r": 0.181,
+     "bump": false,
+     "expected": {
+      "difficulty": 1,
+      "flag": "low_r",
+      "status": "active",
+      "moved": true
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P5",
+     "n": 32,
+     "n_correct": 30,
+     "r": 0.281,
+     "bump": false,
+     "expected": {
+      "difficulty": 1,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P4",
+     "n": 26,
+     "n_correct": 26,
+     "r": 0.017,
+     "bump": false,
+     "expected": {
+      "difficulty": 1,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P5",
+     "n": 21,
+     "n_correct": 19,
+     "r": 0.091,
+     "bump": false,
+     "expected": {
+      "difficulty": 1,
+      "flag": "low_r",
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P5",
+     "n": 25,
+     "n_correct": 25,
+     "r": 0.059,
+     "bump": false,
+     "expected": {
+      "difficulty": 1,
+      "flag": "low_r",
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P5",
+     "n": 29,
+     "n_correct": 28,
+     "r": 0.24,
+     "bump": false,
+     "expected": {
+      "difficulty": 1,
+      "flag": "low_r",
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P5",
+     "n": 30,
+     "n_correct": 30,
+     "r": 0.153,
+     "bump": false,
+     "expected": {
+      "difficulty": 1,
+      "flag": "low_r",
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P5",
+     "n": 24,
+     "n_correct": 23,
+     "r": 0.039,
+     "bump": false,
+     "expected": {
+      "difficulty": 1,
+      "flag": "low_r",
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P5",
+     "n": 29,
+     "n_correct": 28,
+     "r": 0.155,
+     "bump": false,
+     "expected": {
+      "difficulty": 1,
+      "flag": "low_r",
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P5",
+     "n": 21,
+     "n_correct": 21,
+     "r": 0.216,
+     "bump": false,
+     "expected": {
+      "difficulty": 1,
+      "flag": "low_r",
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P5",
+     "n": 28,
+     "n_correct": 28,
+     "r": 0.272,
+     "bump": false,
+     "expected": {
+      "difficulty": 1,
+      "flag": "low_r",
+      "status": "active",
+      "moved": false
+     }
+    }
+   ]
+  },
+  {
+   "name": "จำลอง seed 22",
+   "item_id": "00000000-0000-4000-c700-000000000012",
+   "grade_id": "P6",
+   "start": 3,
+   "settings": {
+    "calibration.min_n_to_move": 50,
+    "calibration.buffer": 0.05,
+    "calibration.r_min_n": 50,
+    "calibration.r_flag_below": 0.2,
+    "calibration.same_grade_only": true
+   },
+   "rounds": [
+    {
+     "version": 1,
+     "grade_id": "P6",
+     "n": 29,
+     "n_correct": 18,
+     "r": 0.103,
+     "bump": false,
+     "expected": {
+      "difficulty": 3,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P4",
+     "n": 23,
+     "n_correct": 19,
+     "r": 0.199,
+     "bump": false,
+     "expected": {
+      "difficulty": 3,
+      "flag": null,
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P6",
+     "n": 31,
+     "n_correct": 19,
+     "r": 0.237,
+     "bump": false,
+     "expected": {
+      "difficulty": 2,
+      "flag": "low_r",
+      "status": "active",
+      "moved": true
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P6",
+     "n": 22,
+     "n_correct": 13,
+     "r": 0.255,
+     "bump": false,
+     "expected": {
+      "difficulty": 2,
+      "flag": "low_r",
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P6",
+     "n": 32,
+     "n_correct": 15,
+     "r": 0.107,
+     "bump": false,
+     "expected": {
+      "difficulty": 2,
+      "flag": "low_r",
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P6",
+     "n": 33,
+     "n_correct": 19,
+     "r": 0.201,
+     "bump": false,
+     "expected": {
+      "difficulty": 2,
+      "flag": "low_r",
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P5",
+     "n": 34,
+     "n_correct": 16,
+     "r": 0.091,
+     "bump": false,
+     "expected": {
+      "difficulty": 2,
+      "flag": "low_r",
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P6",
+     "n": 28,
+     "n_correct": 14,
+     "r": 0.091,
+     "bump": false,
+     "expected": {
+      "difficulty": 2,
+      "flag": "low_r",
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P6",
+     "n": 26,
+     "n_correct": 14,
+     "r": 0.183,
+     "bump": false,
+     "expected": {
+      "difficulty": 2,
+      "flag": "low_r",
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P6",
+     "n": 31,
+     "n_correct": 13,
+     "r": 0.13,
+     "bump": false,
+     "expected": {
+      "difficulty": 2,
+      "flag": "low_r",
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P6",
+     "n": 34,
+     "n_correct": 14,
+     "r": 0.366,
+     "bump": false,
+     "expected": {
+      "difficulty": 2,
+      "flag": "low_r",
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P6",
+     "n": 21,
+     "n_correct": 10,
+     "r": 0.346,
+     "bump": false,
+     "expected": {
+      "difficulty": 2,
+      "flag": "low_r",
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P6",
+     "n": 20,
+     "n_correct": 11,
+     "r": 0.072,
+     "bump": false,
+     "expected": {
+      "difficulty": 2,
+      "flag": "low_r",
+      "status": "active",
+      "moved": false
+     }
+    },
+    {
+     "version": 1,
+     "grade_id": "P6",
+     "n": 22,
+     "n_correct": 9,
+     "r": 0.216,
+     "bump": false,
+     "expected": {
+      "difficulty": 2,
+      "flag": "low_r",
+      "status": "active",
+      "moved": false
+     }
+    }
+   ]
+  }
+ ]
+}

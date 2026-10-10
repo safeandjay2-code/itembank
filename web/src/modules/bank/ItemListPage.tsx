@@ -4,6 +4,8 @@ import { repo } from '../../data';
 import { STATUS_TH, type ItemPage, type ItemStatus } from '../../core/types';
 import { href, navigate, type Route } from '../../ui/router';
 import { useRefData } from './useRefData';
+import { FlagChip } from '../calibration/HealthPage';
+import type { QualityFlag } from '../calibration/calibrate';
 
 const PAGE_SIZE = 30;
 const STATUSES = Object.keys(STATUS_TH) as ItemStatus[];
@@ -21,6 +23,7 @@ export function ItemListPage({ route }: { route: Route }) {
     difficulty: p.get('d') ? Number(p.get('d')) : undefined,
     status: (p.get('s') as ItemStatus | null) ?? undefined,
     q: p.get('q') ?? '',
+    flag: (p.get('flag') as QualityFlag | 'any' | null) ?? undefined,
     includeSample: p.get('sample') !== '0',
     page: Number(p.get('page') ?? 0),
   };
@@ -39,7 +42,7 @@ export function ItemListPage({ route }: { route: Route }) {
   function set(changes: Record<string, string | number | undefined | boolean>) {
     const next: Record<string, string | number | undefined | boolean> = {
       grade: filter.gradeId, ind: filter.indicatorId, d: filter.difficulty, s: filter.status, q: filter.q,
-      sample: filter.includeSample ? undefined : '0', page: undefined, ...changes,
+      sample: filter.includeSample ? undefined : '0', flag: filter.flag, page: undefined, ...changes,
     };
     navigate('/items', next);
   }
@@ -89,6 +92,14 @@ export function ItemListPage({ route }: { route: Route }) {
             {STATUSES.map((s) => <option key={s} value={s}>{STATUS_TH[s]}</option>)}
           </select>
         </label>
+        <label>ค่า r
+          <select value={filter.flag ?? ''} onChange={(e) => set({ flag: e.target.value || undefined })} data-testid="flag-filter">
+            <option value="">ทั้งหมด</option>
+            <option value="any">ต้องแก้ทุกแบบ</option>
+            <option value="negative_r">ต้องแก้ด่วน (r ติดลบ)</option>
+            <option value="low_r">ต้องแก้ (r ต่ำ)</option>
+          </select>
+        </label>
         <form className="search" onSubmit={search} role="search">
           <input type="search" placeholder="ค้นโจทย์ รหัสข้อ หรือหัวข้อย่อย" value={q} onChange={(e) => setQ(e.target.value)} aria-label="คำค้น" />
           <button className="btn ghost" type="submit">ค้นหา</button>
@@ -111,6 +122,7 @@ export function ItemListPage({ route }: { route: Route }) {
                 <strong className="code">{it.itemCode}</strong>
                 <StatusChip status={it.status} />
                 {it.isSample && <span className="chip">ข้อหุ่น</span>}
+                <FlagChip flag={it.qualityFlag} />
                 <span className="meta">{ref?.indicatorById.get(it.indicatorId)?.code} · {diffName(it.currentDifficulty)} · v{it.currentVersion}</span>
               </div>
               <div className="item-stem">{it.stem}</div>

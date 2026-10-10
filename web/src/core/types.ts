@@ -1,4 +1,5 @@
 import type { FigureSpec } from '../modules/bank/figure/spec';
+import type { QualityFlag } from '../modules/calibration/calibrate';
 // ชนิดข้อมูลหลักของระบบ — ตรงกับตารางใน supabase/migrations
 export type Role = 'owner' | 'admin' | 'teacher';
 
@@ -100,6 +101,12 @@ export interface ItemSummary {
   p: number | null;
   r: number | null;
   updatedAt: string;
+  /** ป้ายคุณภาพจากวงจรปรับความยาก (เฟส 7): r ต่ำ / r ติดลบ */
+  qualityFlag: QualityFlag | null;
+  /** สถิติที่ใช้ปรับความยาก (เวอร์ชันปัจจุบัน ชั้นของตัวชี้วัด) */
+  calibN: number;
+  calibP: number | null;
+  calibR: number | null;
 }
 
 export interface ItemVersion {
@@ -149,6 +156,8 @@ export interface ItemFilter {
   status?: ItemStatus;
   cognitive?: number;
   q?: string;
+  /** ป้ายคุณภาพ: 'any' = มีป้ายใดก็ได้ */
+  flag?: QualityFlag | 'any';
   includeSample?: boolean;
   page?: number;
   pageSize?: number;

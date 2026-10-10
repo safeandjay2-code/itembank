@@ -12,11 +12,14 @@ import { FigureEditor } from './FigureEditor';
 import { ItemPreview } from './ItemPreview';
 import { StatusChip } from './ItemListPage';
 import { DEFAULT_FIGURE_NOTE } from './figure/svg';
+import { ItemCalibrationPanel } from '../calibration/ItemCalibrationPanel';
+import { FlagChip } from '../calibration/HealthPage';
+import { FLAG_TH, type QualityFlag } from '../calibration/calibrate';
 
 const EVENT_TH: Record<string, string> = {
   created: 'สร้างข้อ', status_changed: 'เปลี่ยนสถานะ', difficulty_changed: 'ย้ายระดับความยาก',
   version_changed: 'ขึ้นเวอร์ชันใหม่', version_edited: 'แก้คำผิด/รูปแบบ (เวอร์ชันเดิม)', meta_changed: 'แก้ข้อมูลกำกับ',
-  note: 'หมายเหตุ', imported: 'นำเข้าจากไฟล์',
+  note: 'หมายเหตุ', imported: 'นำเข้าจากไฟล์', quality_flag_changed: 'ป้ายคุณภาพ (ค่า r)',
 };
 
 function draftFrom(d: ItemDetail): ItemDraft {
@@ -53,6 +56,11 @@ function describeEvent(e: { type: string; payload: Record<string, unknown> }, re
     case 'version_edited': return `v${p.version}${p.note ? ` · ${p.note}` : ''}`;
     case 'note': return String(p.text ?? '');
     case 'imported': return p.mode === 'restore' ? 'กู้คืนจากไฟล์สำรอง' : 'ข้อใหม่';
+    case 'quality_flag_changed': {
+      const name = (f: unknown) => (f ? FLAG_TH[f as QualityFlag] : 'ไม่มีป้าย');
+      const why = p.reason === 'new_version' ? ' (ขึ้นเวอร์ชันใหม่ เริ่มนับสถิติใหม่)' : p.r !== null && p.r !== undefined ? ` · r ${Number(p.r).toFixed(2)} n ${p.n_r}` : '';
+      return `${name(p.from)} → ${name(p.to)}${why}`;
+    }
     default: return '';
   }
 }
@@ -173,6 +181,7 @@ export function ItemEditorPage({ id, params }: { id: string | null; params: URLS
             <div className="head-meta">
               <StatusChip status={item.status} />
               {item.isSample && <span className="chip">ข้อหุ่น</span>}
+              <FlagChip flag={item.qualityFlag} />
               <span className="sub" style={{ margin: 0 }}>
                 ความยากปัจจุบัน {ref.difficulties.find((d) => d.id === item.currentDifficulty)?.nameTh}
                 {' · '}n {item.n}{item.p !== null ? ` · p ${item.p.toFixed(2)}` : ''}{item.r !== null ? ` · r ${item.r.toFixed(2)}` : ''}
@@ -187,7 +196,7 @@ export function ItemEditorPage({ id, params }: { id: string | null; params: URLS
       {item && (
         <div className="tabs" role="tablist">
           <button role="tab" aria-pressed={tab === 'edit'} onClick={() => setTab('edit')}>แก้ไข</button>
-          <button role="tab" aria-pressed={tab === 'history'} onClick={() => setTab('history')}>ประวัติ ({item.versions.length} เวอร์ชัน)</button>
+          <button role="tab" aria-pressed={tab === 'history'} onClick={() => setTab('history')}>ประวัติ ({item.versions.length} เวอร์ชัน) และสถิติ</button>
         </div>
       )}
 
@@ -217,6 +226,7 @@ export function ItemEditorPage({ id, params }: { id: string | null; params: URLS
             </ul>
             <p className="sub">ใช้ในชุดข้อสอบแล้ว {item.usedInExams} ชุด</p>
           </section>
+          <ItemCalibrationPanel itemId={item.id} version={item.currentVersion} settings={ref.settings} levels={ref.difficulties} grades={ref.grades} reloadKey={item.updatedAt} />
         </div>
       )}
 

@@ -15,6 +15,10 @@ import { answersEqual, detectWrongSet, scanConfigFromSettings, score } from '../
 import { ASSEMBLABLE, classifyEdit, statusAfterSave, statusChangeBlocked } from '../modules/bank/rules';
 import { configFromSettings, makeOrdering, seatSet } from '../modules/assembly/assemble';
 import { checkCreateInput } from '../modules/assembly/serverRules';
+import {
+  applyCalibration, calibrationConfigFromSettings, calibStats, decide, type BankHealth, type CalibrationRun, type FlagChange,
+  type ItemCalibrationInfo, type LevelMove, type QualityFlag, type Shortfall, type StatRound,
+} from '../modules/calibration/calibrate';
 
 export const DEMO_EMAIL = 'demo@itembank.local';
 export const DEMO_PASSWORD = 'demo1234';
@@ -37,8 +41,13 @@ interface MemItem {
   cognitiveLevel: number; estDifficulty: number; currentDifficulty: number; status: ItemStatus;
   currentVersion: number; noShuffle: boolean; isSample: boolean; tags: string[]; subtopic: string | null;
   createdAt: string; updatedAt: string;
-  versions: ItemVersion[]; events: ItemEvent[]; stats: Array<{ version: number; n: number; nCorrect: number; r: number | null }>;
+  versions: ItemVersion[]; events: ItemEvent[];
+  stats: Array<StatRound & { optionCounts?: Record<string, number>; recordedAt?: string; fromExam?: boolean }>;
+  qualityFlag: QualityFlag | null; qualityFlagAt: string | null;
+  moves: Array<{ version: number; from: number; to: number; direction: 'easier' | 'harder'; p: number; n: number; r: number | null; movedAt: string; runId: number }>;
 }
+
+interface MemRun extends CalibrationRun { ranAt: string }
 
 interface MemExam {
   id: string; title: string; subjectId: string; gradeId: string; setCount: number; studentCount: number; status: ExamStatus;
@@ -63,6 +72,7 @@ export class MemoryRepo implements Repo {
   private examSeq = 0;
   /** ผลตรวจ: exam id → เลขที่ → ผล */
   private scans = new Map<string, Map<number, ScanResponse>>();
+  private runs: MemRun[] = [];
 
   /** samplePerCell = จำนวนข้อหุ่นต่อช่อง (ตัวชี้วัด × ระดับ) — เหมือน seed S900 */
   constructor(samplePerCell = 2) {
@@ -92,7 +102,7 @@ export class MemoryRepo implements Repo {
       createdAt: t, updatedAt: t,
       versions: [{ version: 1, content: clone(a.content), answer: clone(a.answer), qa: a.qa, changeNote: a.note ?? 'สร้างข้อ', createdAt: t }],
       events: [{ type: 'created', payload: { item_code: itemCode, difficulty: a.est, status: a.status }, at: t }],
-      stats: [],
+      stats: [], qualityFlag: null, qualityFlagAt: null, moves: [],
     };
   }
 
@@ -159,7 +169,14 @@ export class MemoryRepo implements Repo {
       n, p: n ? Math.round((nc / n) * 1000) / 1000 : null,
       r: rn ? Math.round((rs.reduce((a, s) => a + (s.r ?? 0) * s.n, 0) / rn) * 1000) / 1000 : null,
       updatedAt: i.updatedAt,
+      ...this.calibFields(i, ind.gradeId),
     };
+  }
+
+  private calibCfg() { return calibrationConfigFromSettings(this.settingsMap()); }
+  private calibFields(i: MemItem, gradeId: string) {
+    const cs = calibStats(i.stats, i.currentVersion, gradeId, this.calibCfg());
+    return { qualityFlag: i.qualityFlag, calibN: cs.n, calibP: cs.p, calibR: cs.r };
   }
 
   async listItems(subjectId: string, f: ItemFilter): Promise<ItemPage> {
@@ -173,6 +190,7 @@ export class MemoryRepo implements Repo {
       && (!f.difficulty || s.currentDifficulty === f.difficulty)
       && (!f.status || s.status === f.status)
       && (!f.cognitive || s.cognitiveLevel === f.cognitive)
+      && (!f.flag || (f.flag === 'any' ? s.qualityFlag !== null : s.qualityFlag === f.flag))
       && (f.includeSample || !s.isSample)
       && (!q || s.stem.toLowerCase().includes(q) || s.itemCode.toLowerCase().includes(q) || (s.subtopic ?? '').toLowerCase().includes(q)));
     all.sort((a, b) => a.gradeId.localeCompare(b.gradeId) || ind.get(a.indicatorId)!.sort - ind.get(b.indicatorId)!.sort
@@ -226,6 +244,10 @@ export class MemoryRepo implements Repo {
         changeNote: input.changeNote ?? null, createdAt: t });
       it.events.push({ type: 'version_changed', payload: { from: it.currentVersion, to: it.currentVersion + 1 }, at: t });
       it.currentVersion += 1;
+      if (it.qualityFlag) {
+        it.events.push({ type: 'quality_flag_changed', payload: { from: it.qualityFlag, to: null, reason: 'new_version' }, at: t });
+        it.qualityFlag = null; it.qualityFlagAt = null;
+      }
     } else throw new Error(`โหมดบันทึกไม่ถูกต้อง: ${input.mode}`);
     const meta = { indicator_id: d.indicatorId, cognitive_level: d.cognitiveLevel, est_difficulty: d.estDifficulty,
       no_shuffle: d.noShuffle, subtopic: d.subtopic };
@@ -281,7 +303,7 @@ export class MemoryRepo implements Repo {
         no_shuffle: i.noShuffle, is_sample: i.isSample, tags: [...i.tags], subtopic: i.subtopic, created_at: i.createdAt,
         versions: i.versions.map((v) => ({ version: v.version, content: clone(v.content), answer: clone(v.answer), qa: clone(v.qa),
           change_note: v.changeNote, created_at: v.createdAt })),
-        stat_rounds: i.stats.map((s) => ({ version: s.version, n: s.n, n_correct: s.nCorrect, r: s.r })),
+        stat_rounds: i.stats.map((s) => ({ version: s.version, grade_id: s.gradeId, n: s.n, n_correct: s.nCorrect, r: s.r })),
         events: i.events.map((e) => ({ type: e.type, payload: clone(e.payload), at: e.at })),
       }));
     return { format: 'itembank.bank.v1', exported_at: now(), subject_id: subjectId, item_count: items.length, items };
@@ -322,7 +344,7 @@ export class MemoryRepo implements Repo {
             changeNote: v.change_note ?? null, createdAt: v.created_at ?? now() }));
           item.currentVersion = it.current_version ?? Math.max(...versions.map((v) => v.version));
           item.currentDifficulty = it.current_difficulty ? this.levelId('difficulty', it.current_difficulty) : est;
-          item.stats = (it.stat_rounds ?? []).map((s: any) => ({ version: s.version, n: s.n, nCorrect: s.n_correct, r: s.r ?? null }));
+          item.stats = (it.stat_rounds ?? []).map((s: any) => ({ version: s.version, gradeId: s.grade_id ?? null, n: s.n, nCorrect: s.n_correct, r: s.r ?? null }));
           if (Array.isArray(it.events) && it.events.length) item.events = clone(it.events);
           item.events.push({ type: 'imported', payload: { mode: 'restore' }, at: now() });
           const num = Number(code.slice(2));
@@ -513,7 +535,11 @@ export class MemoryRepo implements Repo {
     const a = analyze(d, [...rows.values()], analysisConfigFromSettings(settings));
     const stats: RoundStat[] = a.items.filter((i) => i.n > 0).map((i) => ({ itemId: i.itemId, version: i.version, n: i.n, nCorrect: i.nCorrect,
       r: i.r, optionCounts: { ...i.counts } }));
-    for (const st of stats) this.items.find((x) => x.id === st.itemId)?.stats.push({ version: st.version, n: st.n, nCorrect: st.nCorrect, r: st.r });
+    const recordedAt = now();
+    for (const st of stats) this.items.find((x) => x.id === st.itemId)?.stats.push({ version: st.version, gradeId: e.gradeId, n: st.n,
+      nCorrect: st.nCorrect, r: st.r, optionCounts: st.optionCounts, recordedAt, fromExam: true });
+    // สถิติรอบใหม่เข้าคลัง → ปรับความยากทันที (เลียนแบบทริกเกอร์ของ migration 0010)
+    if (stats.length) this.calibrate(stats.map((x) => x.itemId), 'exam', e.id);
     const summary: ClosedSummary = {
       n: a.summary.n, studentCount: e.studentCount, itemCount: d.itemCount, mean: a.summary.mean, sd: a.summary.sd, median: a.summary.median,
       min: a.summary.min, max: a.summary.max, meanPercent: a.summary.meanPercent, histogram: a.summary.histogram, passRatio: a.config.passRatio,
@@ -539,6 +565,150 @@ export class MemoryRepo implements Repo {
     const t = Date.now();
     for (const e of this.exams)
       if ((e.status === 'draft' || e.status === 'open') && e.expiresAt && Date.parse(e.expiresAt) <= t) await this.finalize(e, 'expired');
+  }
+
+  // ---------- ปรับความยากและสุขภาพคลัง (เลียนแบบ migration 0010) ----------
+  private calibrate(itemIds: string[] | null, source: 'exam' | 'manual', examId: string | null): MemRun {
+    const levelsList = levels.difficulty.map((d) => ({ id: d.id, key: d.key, nameTh: d.name_th, pLower: d.p_lower, pUpper: d.p_upper }));
+    const cfg = this.calibCfg();
+    const runId = this.runs.length + 1;
+    const t = now();
+    const run: MemRun = { runId, source, examId, itemsChecked: 0, moved: [], flagged: [], unflagged: [], stopped: 0, shortfalls: [], ranAt: t };
+    const targets = this.items.filter((i) => !itemIds || itemIds.includes(i.id)).sort((a, b) => a.itemCode.localeCompare(b.itemCode));
+    for (const it of targets) {
+      const gradeId = this.indicators.find((x) => x.id === it.indicatorId)!.gradeId;
+      const res = applyCalibration(levelsList, cfg, { currentDifficulty: it.currentDifficulty, status: it.status, qualityFlag: it.qualityFlag,
+        currentVersion: it.currentVersion, gradeId }, it.stats);
+      if (!res) continue;
+      run.itemsChecked += 1;
+      if (res.moved) {
+        it.moves.push({ version: it.currentVersion, from: res.moved.from, to: res.moved.to, direction: res.moved.direction,
+          p: res.stats.p ?? 0, n: res.stats.n, r: res.stats.r, movedAt: t, runId });
+        it.events.push({ type: 'difficulty_changed', payload: { from: res.moved.from, to: res.moved.to }, at: t });
+        run.moved.push({ itemId: it.id, itemCode: it.itemCode, indicatorId: it.indicatorId, from: res.moved.from, to: res.moved.to,
+          direction: res.moved.direction, p: res.stats.p ?? 0, n: res.stats.n });
+        it.currentDifficulty = res.moved.to;
+      }
+      if (res.flagChanged) {
+        it.events.push({ type: 'quality_flag_changed', payload: { from: res.flagChanged.from, to: res.flagChanged.to, r: res.stats.r, n_r: res.stats.nR }, at: t });
+        const fc: FlagChange = { itemId: it.id, itemCode: it.itemCode, indicatorId: it.indicatorId, flag: res.flagChanged.to, from: res.flagChanged.from,
+          r: res.stats.r, nR: res.stats.nR };
+        if (res.flagChanged.to) run.flagged.push(fc); else run.unflagged.push(fc);
+        it.qualityFlag = res.flagChanged.to;
+        it.qualityFlagAt = res.flagChanged.to ? t : null;
+        if (res.stopped) {
+          it.events.push({ type: 'status_changed', payload: { from: it.status, to: 'needs_fix' }, at: t });
+          it.events.push({ type: 'note', payload: { text: 'ค่า r ติดลบ — หยุดสุ่มเข้าชุดจนกว่าจะแก้', status: 'needs_fix' }, at: t });
+          it.status = 'needs_fix';
+          run.stopped += 1;
+        }
+      }
+    }
+    const cells = this.coverageNow();
+    run.shortfalls = cells.filter((c) => c.ready < cfg.target && run.moved.some((m) => m.indicatorId === c.indicatorId && m.from === c.difficultyId))
+      .map((c) => ({ ...c, target: cfg.target }));
+    this.runs.push(run);
+    return run;
+  }
+
+  private coverageNow(): Array<Shortfall & { indicatorSort: number }> {
+    const out: Array<Shortfall & { indicatorSort: number }> = [];
+    for (const ind of this.indicators)
+      for (const d of levels.difficulty) {
+        const mine = this.items.filter((i) => i.indicatorId === ind.id && i.currentDifficulty === d.id);
+        out.push({ indicatorId: ind.id, indicatorCode: ind.code, gradeId: ind.gradeId, indicatorSort: ind.sort, difficultyId: d.id,
+          ready: mine.filter((i) => i.status === 'reviewed' || i.status === 'active').length, target: 0,
+          draft: mine.filter((i) => i.status === 'draft').length, needsFix: mine.filter((i) => i.status === 'needs_fix').length });
+      }
+    return out.sort((a, b) => a.gradeId.localeCompare(b.gradeId) || a.indicatorSort - b.indicatorSort || a.difficultyId - b.difficultyId);
+  }
+
+  private publicRun(r: MemRun): CalibrationRun {
+    const { ranAt: _ranAt, ...rest } = clone(r);
+    return { ...rest, shortfalls: rest.shortfalls.map(({ indicatorSort: _s, ...x }: any) => x) };
+  }
+
+  async runCalibration(itemIds?: string[]): Promise<CalibrationRun> {
+    return this.publicRun(this.calibrate(itemIds && itemIds.length ? itemIds : null, 'manual', null));
+  }
+
+  async getExamCalibration(examId: string): Promise<CalibrationRun | null> {
+    const r = [...this.runs].reverse().find((x) => x.source === 'exam' && x.examId === examId);
+    return r ? this.publicRun(r) : null;
+  }
+
+  async getItemCalibration(id: string): Promise<ItemCalibrationInfo | null> {
+    const it = this.items.find((x) => x.id === id);
+    if (!it) return null;
+    const gradeId = this.indicators.find((x) => x.id === it.indicatorId)!.gradeId;
+    const cfg = this.calibCfg();
+    const st = calibStats(it.stats, it.currentVersion, gradeId, cfg);
+    const levelsList = await this.getDifficultyLevels();
+    return {
+      stats: { ...st, gradeId, version: it.currentVersion },
+      decision: decide(levelsList, cfg, it.currentDifficulty, st),
+      rounds: it.stats.map((s) => ({ version: s.version, gradeId: s.gradeId, n: s.n, nCorrect: s.nCorrect, r: s.r,
+        optionCounts: s.optionCounts ?? {}, recordedAt: s.recordedAt ?? it.createdAt })),
+      moves: it.moves.map(({ runId: _r, ...m }) => ({ ...m })),
+    };
+  }
+
+  async getBankHealth(subjectId: string): Promise<BankHealth> {
+    const cfg = this.calibCfg();
+    const s = this.settingsMap();
+    const recentDays = typeof s['calibration.recent_days'] === 'number' ? (s['calibration.recent_days'] as number) : 30;
+    const since = Date.now() - recentDays * 86_400_000;
+    const items = this.items.filter((i) => i.subjectId === subjectId);
+    const ind = new Map(this.indicators.map((x) => [x.id, x]));
+    const live = items.filter((i) => ['reviewed', 'active', 'needs_fix'].includes(i.status));
+    const statOf = (i: MemItem) => calibStats(i.stats, i.currentVersion, ind.get(i.indicatorId)!.gradeId, cfg);
+    const cells = this.coverageNow();
+    const moves = items.flatMap((i) => i.moves.map((m) => ({ ...m, item: i })));
+    const recent = moves.filter((m) => Date.parse(m.movedAt) > since);
+    const statusCounts: Record<string, number> = {};
+    for (const i of items) statusCounts[i.status] = (statusCounts[i.status] ?? 0) + 1;
+    return {
+      generatedAt: now(),
+      settings: { target: cfg.target, minNToMove: cfg.minNToMove, buffer: cfg.buffer, rFlagBelow: cfg.rFlagBelow, rMinN: cfg.rMinN,
+        sameGradeOnly: cfg.sameGradeOnly, recentDays },
+      statusCounts,
+      sampleCount: items.filter((i) => i.isSample).length,
+      nBuckets: {
+        none: live.filter((i) => statOf(i).n === 0).length,
+        collecting: live.filter((i) => { const n = statOf(i).n; return n > 0 && n < cfg.minNToMove; }).length,
+        calibrated: live.filter((i) => statOf(i).n >= cfg.minNToMove).length,
+      },
+      coverage: { cells: cells.length, full: cells.filter((c) => c.ready >= cfg.target).length, empty: cells.filter((c) => c.ready === 0).length,
+        readyTotal: cells.reduce((a, c) => a + c.ready, 0), targetTotal: cells.length * cfg.target },
+      shortfalls: cells.filter((c) => c.ready < cfg.target).map(({ indicatorSort: _s, ...c }) => ({ ...c, target: cfg.target,
+        movedOut: recent.filter((m) => m.item.indicatorId === c.indicatorId && m.from === c.difficultyId).length })),
+      flagged: items.filter((i) => i.qualityFlag && i.status !== 'retired').map((i) => {
+        const st = statOf(i);
+        return { itemId: i.id, itemCode: i.itemCode, indicatorId: i.indicatorId, indicatorCode: ind.get(i.indicatorId)!.code,
+          gradeId: ind.get(i.indicatorId)!.gradeId, difficulty: i.currentDifficulty, status: i.status, flag: i.qualityFlag!, flagAt: i.qualityFlagAt,
+          r: st.r, nR: st.nR, p: st.p, n: st.n };
+      }).sort((a, b) => (a.flag === 'negative_r' ? 0 : 1) - (b.flag === 'negative_r' ? 0 : 1) || (a.r ?? 9) - (b.r ?? 9) || a.itemCode.localeCompare(b.itemCode)),
+      needsFixCount: items.filter((i) => i.status === 'needs_fix').length,
+      recentMoves: recent.sort((a, b) => b.movedAt.localeCompare(a.movedAt)).slice(0, 200).map((m) => ({
+        itemId: m.item.id, itemCode: m.item.itemCode, indicatorId: m.item.indicatorId, indicatorCode: ind.get(m.item.indicatorId)!.code,
+        gradeId: ind.get(m.item.indicatorId)!.gradeId, from: m.from, to: m.to, direction: m.direction, p: m.p, n: m.n, movedAt: m.movedAt,
+      } as LevelMove & { indicatorCode: string; gradeId: string })),
+      moveTotals: { easier: moves.filter((m) => m.direction === 'easier').length, harder: moves.filter((m) => m.direction === 'harder').length, allTime: moves.length },
+      levelMix: levels.difficulty.map((d) => ({ difficulty: d.id, est: live.filter((i) => i.estDifficulty === d.id).length,
+        current: live.filter((i) => i.currentDifficulty === d.id).length })),
+      runs: [...this.runs].reverse().slice(0, 10).map((r) => ({ id: r.runId, source: r.source, examId: r.examId, ranAt: r.ranAt, itemsChecked: r.itemsChecked,
+        moved: r.moved.length, flagged: r.flagged.length, unflagged: r.unflagged.length, shortfalls: r.shortfalls.length })),
+    };
+  }
+
+  /** โหมดสาธิต/ทดสอบเท่านั้น: ใส่สถิติรอบสอบให้ข้อ (เหมือนปิดชุดข้อสอบ) แล้วปรับความยาก */
+  debugAddStats(itemCode: string, rounds: Array<{ n: number; nCorrect: number; r: number | null; gradeId?: string }>) {
+    const it = this.items.find((x) => x.itemCode === itemCode);
+    if (!it) throw new Error(`ไม่พบข้อ ${itemCode}`);
+    const gradeId = this.indicators.find((x) => x.id === it.indicatorId)!.gradeId;
+    for (const r of rounds) it.stats.push({ version: it.currentVersion, gradeId: r.gradeId ?? gradeId, n: r.n, nCorrect: r.nCorrect, r: r.r,
+      recordedAt: now(), fromExam: true });
+    return this.publicRun(this.calibrate([it.id], 'exam', `demo-${itemCode}`));
   }
 
   /** โหมดสาธิต/ทดสอบเท่านั้น: เลื่อนวันเริ่มตรวจ/วันหมดอายุของชุดย้อนหลัง (จำลองเวลาผ่านไป) */

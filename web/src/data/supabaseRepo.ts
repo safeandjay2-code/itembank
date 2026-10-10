@@ -6,6 +6,8 @@ import type {
   ScanSaveInput, ScanSaveResult, Settings, ClosedSummary,
 } from '../core/types';
 import { toDbPayload } from '../modules/assembly/payload';
+import type { BankHealth, CalibrationRun, ItemCalibrationInfo } from '../modules/calibration/calibrate';
+import { toBankHealth, toCalibrationRun, toItemCalibrationInfo } from '../modules/calibration/fromDb';
 
 function must<T>(res: { data: T | null; error: { message: string } | null }): T {
   if (res.error) throw new Error(res.error.message);
@@ -98,6 +100,8 @@ export class SupabaseRepo implements Repo {
     if (f.difficulty) q = q.eq('current_difficulty', f.difficulty);
     if (f.status) q = q.eq('status', f.status);
     if (f.cognitive) q = q.eq('cognitive_level', f.cognitive);
+    if (f.flag === 'any') q = q.not('quality_flag', 'is', null);
+    else if (f.flag) q = q.eq('quality_flag', f.flag);
     if (!f.includeSample) q = q.eq('is_sample', false);
     const text = (f.q ?? '').replace(/[,()*%\\]/g, ' ').trim();
     if (text) q = q.or(`stem.ilike.*${text}*,item_code.ilike.*${text}*,subtopic.ilike.*${text}*`);
@@ -235,6 +239,31 @@ export class SupabaseRepo implements Repo {
     if (error) throw new Error(error.message);
     return toClosedSummary(data);
   }
+  // ---------- ปรับความยากและสุขภาพคลัง (เฟส 7) ----------
+  async getBankHealth(subjectId: string): Promise<BankHealth> {
+    const { data, error } = await this.sb.rpc('bank_health', { p_subject_id: subjectId });
+    if (error) throw new Error(error.message);
+    return toBankHealth(data);
+  }
+
+  async runCalibration(itemIds?: string[]): Promise<CalibrationRun> {
+    const { data, error } = await this.sb.rpc('calib_run', { p_item_ids: itemIds && itemIds.length ? itemIds : null });
+    if (error) throw new Error(error.message);
+    return toCalibrationRun(data);
+  }
+
+  async getItemCalibration(id: string): Promise<ItemCalibrationInfo | null> {
+    const { data, error } = await this.sb.rpc('calib_item_info', { p_item: id });
+    if (error) throw new Error(error.message);
+    return data && data.stats ? toItemCalibrationInfo(data) : null;
+  }
+
+  async getExamCalibration(examId: string): Promise<CalibrationRun | null> {
+    const { data, error } = await this.sb.rpc('calib_exam_result', { p_exam: examId });
+    if (error) throw new Error(error.message);
+    return data ? toCalibrationRun(data) : null;
+  }
+
 }
 
 function toExamSummary(e: any): ExamSummary {
@@ -286,6 +315,9 @@ function toSummary(r: any): ItemSummary {
     tags: r.tags ?? [], subtopic: r.subtopic, stem: r.stem ?? '', hasFigure: !!r.has_figure, qaPassed: r.qa_passed,
     n: r.n ?? 0, p: r.p === null || r.p === undefined ? null : Number(r.p), r: r.r === null || r.r === undefined ? null : Number(r.r),
     updatedAt: r.updated_at,
+    qualityFlag: r.quality_flag ?? null, calibN: r.calib_n ?? 0,
+    calibP: r.calib_p === null || r.calib_p === undefined ? null : Number(r.calib_p),
+    calibR: r.calib_r === null || r.calib_r === undefined ? null : Number(r.calib_r),
   };
 }
 

@@ -1,15 +1,16 @@
 # ทดสอบทั้งระบบทุกครั้งที่ push แล้ว deploy หน้าเว็บขึ้น GitHub Pages เมื่อผ่านเท่านั้น
+# กิ่ง onestop = สำเนาทดสอบระบบ One Stop: ทดสอบอย่างเดียว ไม่ deploy (เว็บจริงมาจาก main เท่านั้น)
 name: test-and-deploy
 on:
   push:
-    branches: [main]
+    branches: [main, onestop]
   workflow_dispatch:
 permissions:
   contents: read
   pages: write
   id-token: write
 concurrency:
-  group: pages
+  group: pages-${{ github.ref_name }}
   cancel-in-progress: true
 jobs:
   test:
@@ -29,6 +30,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: ทดสอบฐานข้อมูล
         run: bash tests/db/run.sh
+      - name: ซ้อมติดตั้ง migration ใหม่บนฐานข้อมูลสภาพเดียวกับระบบจริง
+        run: bash tests/db/staging.sh upgrade
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -45,6 +48,7 @@ jobs:
         run: npm run test:e2e
   deploy:
     needs: test
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment:
       name: github-pages

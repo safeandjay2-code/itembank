@@ -19,6 +19,7 @@
 | `web/tests/unit/scan/` | ภาพจำลองกระดาษคำตอบที่รู้คำตอบ (`synth.ts`: เอียง เงา แสงน้อย เบลอ ฝนจาง) · ทดสอบหนัก: `SCAN_STRESS=200 npx vitest run tests/unit/scan/stress.test.ts` |
 | `tests/db/fixtures/` | แผนชุดข้อสอบที่สร้างด้วยอัลกอริทึมจริง ให้ฐานข้อมูลทดสอบรับ (สร้างใหม่: `UPDATE_FIXTURE=1 npx vitest run tests/unit/assembly-fixture.test.ts`) · ผลวิเคราะห์ที่หน้าเว็บคำนวณ ให้ฐานข้อมูลคำนวณเทียบ (`UPDATE_FIXTURE=1 npx vitest run tests/unit/analysis-fixture.test.ts`) |
 | `tests/db/fixtures/phase7_calibration.json` | กรณีขอบ + จำลองสอบหลายรอบ ให้ฐานข้อมูลเดินตามทีละรอบเทียบกับหน้าเว็บ (สร้างใหม่: `UPDATE_FIXTURE=1 npx vitest run tests/unit/calibration-fixture.test.ts`) |
+| `tests/db/staging.sh` | ฐานข้อมูลสำเนาทดสอบ One Stop สภาพเดียวกับระบบจริง (0001–0010 + ข้อหุ่น 264) · `upgrade` = ซ้อมติดตั้ง migration ใหม่ทับ (CI รันทุกครั้ง) |
 | `supabase/bundle/` | ไฟล์รวมสำหรับวางใน SQL Editor ของ Supabase ทีละเฟส |
 
 ## คำสั่ง (ใน `web/`)
@@ -29,3 +30,7 @@
 1. เปลี่ยนฐานข้อมูล = เพิ่ม migration ใหม่ (`0010_...sql`) ที่ขึ้นต้นด้วย `app_begin_migration`
 2. ค่าเกณฑ์ใหม่ให้เพิ่มใน `data/settings.default.json` + migration/seed ไม่ hardcode ในโค้ด
 3. ทุกโมดูลมีชุดทดสอบ รันทดสอบทั้งหมดผ่านก่อน deploy (GitHub Actions ทำให้อัตโนมัติ)
+
+## กิ่ง `onestop` (สำเนาทดสอบระบบ One Stop)
+- งาน One Stop ทำบนกิ่ง `onestop` เท่านั้น — push แล้ว GitHub Actions ทดสอบครบทุกชุด + ซ้อมติดตั้ง migration บนฐานสภาพระบบจริง **แต่ไม่ deploy** เว็บจริงยังมาจาก `main`
+- ปล่อยขึ้นระบบจริง = รวมกิ่งเข้า `main` + ติดตั้ง migration ใหม่ใน SQL Editor (ต้องได้รับอนุญาตจากเจ้าของระบบก่อนทุกครั้ง) แล้วแก้ `LIVE_LAST` ใน `tests/db/staging.sh`

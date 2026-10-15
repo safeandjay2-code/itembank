@@ -341,3 +341,71 @@ export interface ScanSaveResult {
   /** เมื่อ status = exists: คะแนนของผลใหม่ที่ยังไม่บันทึก */
   newScore?: number;
 }
+
+// ---------- สมุดคะแนน One Stop (ตาราง gb_* — migration 0011) ----------
+
+export type GbColumnKind = 'indicator' | 'final' | 'other';
+export type GbRounding = 'int' | '1dp';
+export type GbAggregation = 'sum' | 'mean';
+export type GbRetakePolicy = 'max' | 'latest' | 'mean' | 'manual';
+export type GbAbsentPolicy = 'zero' | 'skip';
+
+/** ตั้งค่าการคิดคะแนนที่ทับค่าเริ่มต้น gradebook.* เฉพาะห้อง (ไม่มีคีย์ = ใช้ค่าเริ่มต้นของระบบ) */
+export interface GbSettings {
+  rounding?: GbRounding;
+  aggregation?: GbAggregation;
+  retake_policy?: GbRetakePolicy;
+  absent_policy?: GbAbsentPolicy;
+  show_other_columns?: boolean;
+}
+
+export interface ClassroomSummary {
+  id: string;
+  name: string;
+  gradeId: string;
+  academicYear: number;   // พ.ศ.
+  term: number;
+  studentCount: number;
+  status: 'open' | 'closed';
+  createdAt: string;
+  closedAt: string | null;
+  /** จำนวนช่องที่ไม่ใช่ปลายภาค */
+  columnCount: number;
+  examCount: number;
+}
+
+export interface GbColumn {
+  id: number;
+  kind: GbColumnKind;
+  indicatorId: string | null;
+  label: string | null;
+  /** null = ยังไม่ตั้งคะแนนเต็ม */
+  maxScore: number | null;
+  sort: number;
+}
+
+export interface ClassroomDetail extends ClassroomSummary {
+  subjectId: string;
+  settings: GbSettings;
+  /** เรียงตามแผนการสอน (sort) · ช่องปลายภาคอยู่ท้ายเสมอ */
+  columns: GbColumn[];
+}
+
+export interface ClassroomCreateInput {
+  gradeId: string;
+  academicYear: number;
+  term: number;
+  name: string;
+  studentCount: number;
+  finalMax: number | null;
+  /** ตามลำดับแผนการสอน */
+  indicators: Array<{ indicatorId: string; maxScore: number | null }>;
+  settings?: GbSettings;
+}
+
+export interface ClassroomUpdateInput {
+  name?: string;
+  studentCount?: number;
+  /** รวมกับของเดิม · ค่า null = กลับไปใช้ค่าเริ่มต้นของระบบ */
+  settings?: { [K in keyof GbSettings]?: GbSettings[K] | null };
+}

@@ -259,3 +259,45 @@ button.link-like { border: 0; cursor: pointer; font: inherit; }
 .answer-grid .key { font-size: .85rem; color: var(--muted); white-space: nowrap; }
 .answer-grid li.right .key { color: var(--accent); }
 .confirm-inline { display: inline-flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+
+/* ---------- One Stop เฟส 2: ห้องเรียน / ตั้งค่าห้อง ---------- */
+fieldset.plain { border: 0; padding: 0; margin: 0; min-width: 0; }
+.pick-list { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 4px; }
+.pick { display: grid; grid-template-columns: auto auto 1fr auto; gap: 4px 10px; align-items: baseline; padding: 6px 8px; border-radius: 8px; cursor: pointer; }
+.pick:hover { background: var(--none-bg); }
+.pick input { width: auto; align-self: center; }
+@media (max-width: 640px) { .pick { grid-template-columns: auto 1fr auto; } .pick .ind-text { grid-column: 2 / -1; } }
+.score-sum { margin: 12px 0 0; }
+.score-total { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: baseline; padding: 10px 12px; background: var(--none-bg); border-radius: 8px; margin-bottom: 12px; }
+.score-total .hint-line { flex-basis: 100%; margin: 0; }
+.col-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+.col-row { display: grid; grid-template-columns: 48px 1fr auto auto; gap: 6px 10px; align-items: center; padding: 8px 10px;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+.col-row[draggable='true'] { cursor: grab; }
+.col-row.over { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent) inset; }
+.col-row.final { margin-top: 6px; background: var(--none-bg); grid-template-columns: 48px 1fr auto; }
+.col-no { font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; display: flex; gap: 4px; align-items: center; }
+.col-no .grip { font-weight: 400; opacity: .6; }
+.col-body { display: flex; flex-direction: column; min-width: 0; }
+.col-body .ind-text { overflow: hidden; text-overflow: ellipsis; }
+.col-tools { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+.col-warn { grid-column: 1 / -1; color: var(--danger); }
+.btn.icon { min-width: 38px; padding: 6px 8px; }
+.max-input { display: inline-flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.max-input input { width: 72px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); text-align: right; }
+.max-input input[aria-invalid='true'] { border-color: var(--danger); }
+.max-input .unit { color: var(--muted); font-size: .85rem; }
+.error.small { font-size: .8rem; margin: 0; flex-basis: 100%; }
+.label-input { padding: 4px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--ink); font-weight: 600; }
+.tool-row { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: flex-end; margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--line); }
+.tool-row .inline-field { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: .9rem; }
+.tool-row .inline-field.grow { flex: 1 1 260px; flex-direction: column; align-items: stretch; color: var(--muted); font-size: .85rem; }
+.tool-row input, .tool-row select { padding: 7px 9px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); min-width: 0; }
+.tool-row .inline-field input { width: 80px; }
+.tool-row .inline-field.grow select, .tool-row .inline-field.grow input { width: 100%; }
+.tool-row .hint-line { flex-basis: 100%; margin: 0; }
+@media (max-width: 640px) {
+  .col-row { grid-template-columns: 36px 1fr; }
+  .col-row .max-input, .col-row .col-tools { grid-column: 2; justify-content: flex-start; }
+  .col-row.final { grid-template-columns: 36px 1fr; }
+}

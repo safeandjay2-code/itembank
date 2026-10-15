@@ -9,7 +9,9 @@ import type {
   BankExport, CognitiveLevel, CoverageCell, DifficultyLevel, ExamCreateInput, ExamDetail, ExamStatus, ExamSummary, Grade,
   ImportReport, Indicator, ItemAnswer, ItemContent, ItemDetail, ItemEvent, ItemFilter, ItemPage, ItemStatus, ItemSummary,
   ItemVersion, PoolItem, Profile, QaReport, SaveItemInput, ScanAnswer, ScanFlag, ScanResponse, ScanSaveInput, ScanSaveResult, Settings, ClosedSummary, RoundStat,
+  ClassroomCreateInput, ClassroomDetail, ClassroomSummary, ClassroomUpdateInput, GbColumn, GbColumnKind, GbSettings,
 } from '../core/types';
+import { GRADEBOOK_DEFAULT_SETTINGS } from '../modules/gradebook/plan';
 import { analysisConfigFromSettings, analyze } from '../modules/analysis/analyze';
 import { answersEqual, detectWrongSet, scanConfigFromSettings, score } from '../modules/scan/grade';
 import { ASSEMBLABLE, classifyEdit, statusAfterSave, statusChangeBlocked } from '../modules/bank/rules';
@@ -47,6 +49,11 @@ interface MemItem {
   moves: Array<{ version: number; from: number; to: number; direction: 'easier' | 'harder'; p: number; n: number; r: number | null; movedAt: string; runId: number }>;
 }
 
+interface MemClassroom {
+  id: string; subjectId: string; gradeId: string; academicYear: number; term: number; name: string; studentCount: number;
+  settings: GbSettings; status: 'open' | 'closed'; createdAt: string; closedAt: string | null; columns: GbColumn[];
+}
+
 interface MemRun extends CalibrationRun { ranAt: string }
 
 interface MemExam {
@@ -73,6 +80,9 @@ export class MemoryRepo implements Repo {
   /** ผลตรวจ: exam id → เลขที่ → ผล */
   private scans = new Map<string, Map<number, ScanResponse>>();
   private runs: MemRun[] = [];
+  private classrooms: MemClassroom[] = [];
+  private classroomSeq = 0;
+  private columnSeq = 0;
 
   /** samplePerCell = จำนวนข้อหุ่นต่อช่อง (ตัวชี้วัด × ระดับ) — เหมือน seed S900 */
   constructor(samplePerCell = 2) {
@@ -149,7 +159,7 @@ export class MemoryRepo implements Repo {
     return cells;
   }
   async getSettings(): Promise<Settings> {
-    return Object.fromEntries(settingsList.map((s) => [s.key, s.value]));
+    return { ...GRADEBOOK_DEFAULT_SETTINGS, ...Object.fromEntries(settingsList.map((s) => [s.key, s.value])) };
   }
 
   // ---------- คลังข้อสอบ ----------
@@ -369,7 +379,7 @@ export class MemoryRepo implements Repo {
   }
 
   // ---------- ประกอบชุดข้อสอบ (เลียนแบบ migration 0006) ----------
-  private settingsMap() { return Object.fromEntries(settingsList.map((x) => [x.key, x.value])) as Settings; }
+  private settingsMap() { return { ...GRADEBOOK_DEFAULT_SETTINGS, ...Object.fromEntries(settingsList.map((x) => [x.key, x.value])) } as Settings; }
 
   async getAssemblyPool(subjectId: string): Promise<PoolItem[]> {
     return this.items.filter((i) => i.subjectId === subjectId && ASSEMBLABLE.includes(i.status) && i.itemType === 'mcq4')
@@ -718,5 +728,129 @@ export class MemoryRepo implements Repo {
     const shift = (v: string | null) => (v ? new Date(Date.parse(v) - days * 86_400_000).toISOString() : v);
     e.openedAt = shift(e.openedAt);
     e.expiresAt = shift(e.expiresAt);
+  }
+
+  // ---------- One Stop: ห้องเรียน/เทอม (เลียนแบบ gb_* ใน migration 0011 — ฐานข้อมูลจริงมีชุดทดสอบ test_phase8.sql) ----------
+  private requireSignedIn() { if (!this.auth.signedIn) throw new Error('ต้องเข้าสู่ระบบก่อน'); }
+  private requireClassroom(id: string, open = true): MemClassroom {
+    this.requireSignedIn();
+    const c = this.classrooms.find((x) => x.id === id);
+    if (!c) throw new Error('ไม่พบห้องเรียน');
+    if (open && c.status !== 'open') throw new Error('ห้องนี้ปิดเทอมแล้ว แก้ไขไม่ได้');
+    return c;
+  }
+  private validateGbSettings(p: Record<string, unknown>) {
+    for (const [k, v] of Object.entries(p)) {
+      if (k === 'rounding') { if (v !== 'int' && v !== '1dp') throw new Error('การปัดคะแนนต้องเป็น int หรือ 1dp'); }
+      else if (k === 'aggregation') { if (v !== 'sum' && v !== 'mean') throw new Error('วิธีรวมคะแนนต้องเป็น sum หรือ mean'); }
+      else if (k === 'retake_policy') { if (!['max', 'latest', 'mean', 'manual'].includes(v as string)) throw new Error('วิธีนับสอบซ่อมต้องเป็น max, latest, mean หรือ manual'); }
+      else if (k === 'absent_policy') { if (v !== 'zero' && v !== 'skip') throw new Error('วิธีนับขาดสอบต้องเป็น zero หรือ skip'); }
+      else if (k === 'show_other_columns') { if (typeof v !== 'boolean') throw new Error('show_other_columns ต้องเป็น true/false'); }
+      else throw new Error(`ไม่รู้จักการตั้งค่า "${k}"`);
+    }
+  }
+  private checkClassroomRow(name: string, studentCount: number, academicYear: number, term: number) {
+    const max = Number(this.settingsMap()['gradebook.max_students']);
+    if (name.trim().length < 1 || name.trim().length > 60) throw new Error('ชื่อห้องต้องยาว 1–60 ตัวอักษร');
+    if (!Number.isInteger(studentCount) || studentCount < 1) throw new Error('จำนวนนักเรียนต้องเป็นจำนวนเต็ม 1 ขึ้นไป');
+    if (studentCount > max) throw new Error(`จำนวนนักเรียนต้องไม่เกิน ${max} คน`);
+    if (!Number.isInteger(academicYear) || academicYear < 2500 || academicYear > 2700) throw new Error('ปีการศึกษาไม่ถูกต้อง');
+    if (![1, 2, 3].includes(term)) throw new Error('ภาคเรียนไม่ถูกต้อง');
+  }
+  private checkMax(v: number | null) {
+    if (v !== null && (!(v >= 0) || v > 9999.99)) throw new Error('คะแนนเต็มต้องเป็นตัวเลข 0 ขึ้นไป');
+  }
+  private addColumnInternal(c: MemClassroom, kind: GbColumnKind, indicatorId: string | null, label: string | null, maxScore: number | null, sort?: number): number {
+    if (kind !== 'indicator' && kind !== 'other') throw new Error('เพิ่มได้เฉพาะช่องตัวชี้วัดหรือช่องอื่น (ช่องปลายภาคมีอยู่แล้ว)');
+    this.checkMax(maxScore);
+    if (kind === 'indicator') {
+      const ind = this.indicators.find((i) => i.id === indicatorId);
+      if (!ind) throw new Error(`ไม่พบตัวชี้วัด ${indicatorId}`);
+      if (ind.subjectId !== c.subjectId) throw new Error(`ตัวชี้วัด ${indicatorId} ไม่ใช่วิชาของห้องนี้`);
+      if (c.columns.some((x) => x.kind === 'indicator' && x.indicatorId === indicatorId)) throw new Error('ตัวชี้วัดนี้มีในห้องแล้ว');
+    } else if (!(label ?? '').trim()) throw new Error('ช่องอื่นต้องมีชื่อช่อง');
+    const id = ++this.columnSeq;
+    c.columns.push({ id, kind, indicatorId: kind === 'indicator' ? indicatorId : null, label: (label ?? '').trim() || null, maxScore,
+      sort: sort ?? Math.max(0, ...c.columns.filter((x) => x.kind !== 'final').map((x) => x.sort)) + 1 });
+    return id;
+  }
+  private classroomSummary(c: MemClassroom): ClassroomSummary {
+    return { id: c.id, name: c.name, gradeId: c.gradeId, academicYear: c.academicYear, term: c.term, studentCount: c.studentCount,
+      status: c.status, createdAt: c.createdAt, closedAt: c.closedAt,
+      columnCount: c.columns.filter((x) => x.kind !== 'final').length, examCount: 0 };
+  }
+  private findColumn(columnId: number) {
+    const c = this.classrooms.find((x) => x.columns.some((k) => k.id === columnId));
+    if (!c) throw new Error('ไม่พบช่องคะแนน');
+    this.requireClassroom(c.id);
+    return { c, col: c.columns.find((k) => k.id === columnId)! };
+  }
+
+  async listClassrooms(): Promise<ClassroomSummary[]> {
+    this.requireSignedIn();
+    return [...this.classrooms].sort((a, b) => a.status.localeCompare(b.status) || b.academicYear - a.academicYear
+      || b.term - a.term || a.name.localeCompare(b.name)).map((c) => this.classroomSummary(c));
+  }
+  async getClassroom(id: string): Promise<ClassroomDetail | null> {
+    this.requireSignedIn();
+    const c = this.classrooms.find((x) => x.id === id);
+    if (!c) return null;
+    const cols = [...c.columns].sort((a, b) => (a.kind === 'final' ? 1 : 0) - (b.kind === 'final' ? 1 : 0) || a.sort - b.sort || a.id - b.id);
+    return { ...this.classroomSummary(c), subjectId: c.subjectId, settings: clone(c.settings), columns: clone(cols) };
+  }
+  async createClassroom(input: ClassroomCreateInput): Promise<string> {
+    this.requireSignedIn();
+    const name = input.name.trim();
+    this.checkClassroomRow(name, input.studentCount, input.academicYear, input.term);
+    if (!curriculum.grades.some((g: any) => g.id === input.gradeId)) throw new Error('ไม่พบชั้นเรียน');
+    if (this.classrooms.some((x) => x.status === 'open' && x.academicYear === input.academicYear && x.term === input.term
+      && x.name.toLowerCase() === name.toLowerCase())) throw new Error(`มีห้อง ${name} ภาคเรียนที่ ${input.term}/${input.academicYear} อยู่แล้ว`);
+    const settings = clone(input.settings ?? {});
+    this.validateGbSettings(settings as Record<string, unknown>);
+    const finalMax = input.finalMax ?? Number(this.settingsMap()['gradebook.default_final']);
+    this.checkMax(finalMax);
+    const c: MemClassroom = { id: `class-${++this.classroomSeq}`, subjectId: 'MATH', gradeId: input.gradeId, academicYear: input.academicYear,
+      term: input.term, name, studentCount: input.studentCount, settings, status: 'open', createdAt: now(), closedAt: null, columns: [] };
+    c.columns.push({ id: ++this.columnSeq, kind: 'final', indicatorId: null, label: null, maxScore: finalMax, sort: 0 });
+    input.indicators.forEach((r, k) => this.addColumnInternal(c, 'indicator', r.indicatorId, null, r.maxScore, k + 1));
+    this.classrooms.push(c);   // ทั้งหมดหรือไม่มีเลย (เหมือน transaction)
+    return c.id;
+  }
+  async updateClassroom(id: string, input: ClassroomUpdateInput): Promise<void> {
+    const c = this.requireClassroom(id);
+    const settings: Record<string, unknown> = { ...c.settings, ...(input.settings ?? {}) };
+    for (const k of Object.keys(settings)) if (settings[k] === null || settings[k] === undefined) delete settings[k];
+    this.validateGbSettings(settings);
+    const name = input.name !== undefined ? input.name.trim() : c.name;
+    const studentCount = input.studentCount ?? c.studentCount;
+    this.checkClassroomRow(name, studentCount, c.academicYear, c.term);
+    if (input.name !== undefined && this.classrooms.some((x) => x.id !== c.id && x.status === 'open' && x.academicYear === c.academicYear
+      && x.term === c.term && x.name.toLowerCase() === name.toLowerCase())) throw new Error(`มีห้อง ${name} ภาคเรียนนี้อยู่แล้ว`);
+    Object.assign(c, { name, studentCount, settings });
+  }
+  async deleteClassroom(id: string): Promise<void> {
+    this.requireClassroom(id, false);
+    this.classrooms = this.classrooms.filter((x) => x.id !== id);
+  }
+  async addColumn(classroomId: string, kind: Exclude<GbColumnKind, 'final'>, indicatorId: string | null, label: string | null, maxScore: number | null): Promise<number> {
+    return this.addColumnInternal(this.requireClassroom(classroomId), kind, indicatorId, label, maxScore);
+  }
+  async updateColumn(columnId: number, maxScore: number | null, label?: string | null): Promise<void> {
+    const { col } = this.findColumn(columnId);
+    this.checkMax(maxScore);
+    col.maxScore = maxScore;
+    if (col.kind === 'other' && label && label.trim()) col.label = label.trim();
+  }
+  async reorderColumns(classroomId: string, columnIds: number[]): Promise<void> {
+    const c = this.requireClassroom(classroomId);
+    const have = c.columns.filter((x) => x.kind !== 'final').map((x) => x.id).sort((a, b) => a - b);
+    const want = [...columnIds].sort((a, b) => a - b);
+    if (have.length !== want.length || have.some((v, k) => v !== want[k])) throw new Error('ลำดับช่องไม่ครบหรือมีช่องที่ไม่ใช่ของห้องนี้');
+    columnIds.forEach((cid, k) => { c.columns.find((x) => x.id === cid)!.sort = k + 1; });
+  }
+  async deleteColumn(columnId: number): Promise<void> {
+    const { c, col } = this.findColumn(columnId);
+    if (col.kind === 'final') throw new Error('ลบช่องปลายภาคไม่ได้ (ตั้งคะแนนเต็มเป็น 0 ได้ถ้าไม่ใช้)');
+    c.columns = c.columns.filter((x) => x.id !== columnId);
   }
 }

@@ -18,11 +18,15 @@ import { ReportPage } from './modules/analysis/ReportPage';
 import { ClosePage } from './modules/analysis/ClosePage';
 import { ReportListPage } from './modules/analysis/ReportListPage';
 import { HealthPage } from './modules/calibration/HealthPage';
+import { ClassroomListPage } from './modules/gradebook/ClassroomListPage';
+import { ClassroomNewPage } from './modules/gradebook/ClassroomNewPage';
+import { ClassroomSettingsPage } from './modules/gradebook/ClassroomSettingsPage';
 import { useRoute } from './ui/router';
 
 // เมนูของระบบ — โมดูลที่ยังไม่สร้างแสดงเป็น "เร็ว ๆ นี้" พร้อมเฟส (เพิ่มหน้าใหม่ได้ที่นี่ที่เดียว)
 const NAV: Array<{ path?: string; match?: string; label: string; phase?: number; bankAdmin?: boolean }> = [
   { path: '/', label: 'หน้าแรก' },
+  { path: '/classes', match: '/classes', label: 'ห้องเรียน' },
   { path: '/coverage', label: 'ผังคลังข้อสอบ' },
   { path: '/items', match: '/items', label: 'คลังข้อสอบ', bankAdmin: true },
   { path: '/backup', label: 'สำรอง/นำเข้า', bankAdmin: true },
@@ -56,11 +60,15 @@ export function App() {
   const reportMatch = /^\/exams\/([^/]+)\/report$/.exec(path);
   const closeMatch = /^\/exams\/([^/]+)\/close$/.exec(path);
   const examMatch = /^\/exams\/([^/]+)$/.exec(path);
+  const classMatch = /^\/classes\/([^/]+)$/.exec(path);
 
   function page() {
     const needsAdmin = path.startsWith('/items') || path === '/backup' || path === '/health';
     if (needsAdmin && profile && !isBankAdmin) return <div className="card">หน้านี้สำหรับผู้ดูแลคลังข้อสอบเท่านั้น</div>;
     if (needsAdmin && !profile) return <p className="sub">กำลังโหลด…</p>;
+    if (path === '/classes') return <ClassroomListPage />;
+    if (path === '/classes/new') return <ClassroomNewPage />;
+    if (classMatch) return <ClassroomSettingsPage key={classMatch[1]} id={classMatch[1]} route={route} />;
     if (path === '/coverage') return <CoveragePage />;
     if (path === '/items') return <ItemListPage route={route} />;
     if (itemMatch) return <ItemEditorPage key={itemMatch[1]} id={itemMatch[1] === 'new' ? null : itemMatch[1]} params={route.params} />;

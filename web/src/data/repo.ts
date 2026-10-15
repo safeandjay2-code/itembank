@@ -3,7 +3,7 @@
 import type {
   BankExport, CognitiveLevel, CoverageCell, DifficultyLevel, ExamCreateInput, ExamDetail, ExamSummary, Grade, ImportReport,
   Indicator, ItemDetail, ItemFilter, ItemPage, ItemStatus, PoolItem, Profile, SaveItemInput, ScanAnswer, ScanResponse, ScanSaveInput,
-  ScanSaveResult, Settings, ClosedSummary,
+  ScanSaveResult, Settings, ClosedSummary, ClassroomCreateInput, ClassroomDetail, ClassroomSummary, ClassroomUpdateInput, GbColumnKind,
 } from '../core/types';
 import type { BankHealth, CalibrationRun, ItemCalibrationInfo } from '../modules/calibration/calibrate';
 
@@ -76,4 +76,22 @@ export interface Repo {
   getItemCalibration(id: string): Promise<ItemCalibrationInfo | null>;
   /** ผลการปรับความยากที่เกิดจากการปิดชุดนี้ (null = ยังไม่ปิด/ไม่มีสถิติ) */
   getExamCalibration(examId: string): Promise<CalibrationRun | null>;
+
+  // ---------- One Stop: ห้องเรียน/เทอม และช่องคะแนน (เฟส 2 · ฟังก์ชัน gb_* ใน migration 0011) ----------
+  /** ห้องของผู้ใช้ (เปิดอยู่ก่อน แล้วเรียงปีการศึกษา/ภาคเรียนใหม่ → เก่า) */
+  listClassrooms(): Promise<ClassroomSummary[]>;
+  getClassroom(id: string): Promise<ClassroomDetail | null>;
+  /** สร้างห้อง + ช่องปลายภาค + ช่องตัวชี้วัดตามลำดับที่ส่ง คืนค่า id ของห้อง */
+  createClassroom(input: ClassroomCreateInput): Promise<string>;
+  updateClassroom(id: string, input: ClassroomUpdateInput): Promise<void>;
+  /** ลบห้อง (ห้องที่เปิดอยู่และมีคะแนนจากการสอบแล้ว ลบไม่ได้ ต้องปิดเทอมก่อน) */
+  deleteClassroom(id: string): Promise<void>;
+  /** เพิ่มช่องต่อท้าย (ตัวชี้วัด หรือช่องอื่น) คืนค่า id ของช่อง */
+  addColumn(classroomId: string, kind: Exclude<GbColumnKind, 'final'>, indicatorId: string | null, label: string | null, maxScore: number | null): Promise<number>;
+  /** แก้คะแนนเต็ม (null = ยังไม่ตั้ง) และชื่อช่อง (เฉพาะช่องอื่น) */
+  updateColumn(columnId: number, maxScore: number | null, label?: string | null): Promise<void>;
+  /** เรียงช่องตามแผนการสอน — ต้องส่ง id ทุกช่องที่ไม่ใช่ปลายภาคครบ */
+  reorderColumns(classroomId: string, columnIds: number[]): Promise<void>;
+  /** ลบช่อง (ปลายภาคลบไม่ได้) — คะแนนจริงจากการสอบไม่หาย แต่คะแนนที่ปรับของช่องนี้หาย */
+  deleteColumn(columnId: number): Promise<void>;
 }

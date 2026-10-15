@@ -3,7 +3,8 @@ import type { Repo, AuthState } from './repo';
 import type {
   BankExport, CognitiveLevel, CoverageCell, DifficultyLevel, ExamCreateInput, ExamDetail, ExamSummary, Grade, ImportReport,
   Indicator, ItemDetail, ItemFilter, ItemPage, ItemStatus, ItemSummary, ItemVersion, PoolItem, Profile, SaveItemInput, ScanAnswer, ScanResponse,
-  ScanSaveInput, ScanSaveResult, Settings, ClosedSummary,
+  ScanSaveInput, ScanSaveResult, Settings, ClosedSummary, ClassroomCreateInput, ClassroomDetail, ClassroomSummary, ClassroomUpdateInput,
+  GbColumn, GbColumnKind,
 } from '../core/types';
 import { toDbPayload } from '../modules/assembly/payload';
 import type { BankHealth, CalibrationRun, ItemCalibrationInfo } from '../modules/calibration/calibrate';
@@ -264,6 +265,65 @@ export class SupabaseRepo implements Repo {
     return data ? toCalibrationRun(data) : null;
   }
 
+
+  // ---------- One Stop: ห้องเรียน/เทอม และช่องคะแนน (ฟังก์ชัน gb_* — migration 0011) ----------
+  private async rpc<T = unknown>(fn: string, args: Record<string, unknown> = {}): Promise<T> {
+    const { data, error } = await this.sb.rpc(fn, args);
+    if (error) throw new Error(error.message);
+    return data as T;
+  }
+
+  async listClassrooms(): Promise<ClassroomSummary[]> {
+    return ((await this.rpc<any[]>('gb_classroom_list')) ?? []).map(toClassroomSummary);
+  }
+
+  async getClassroom(id: string): Promise<ClassroomDetail | null> {
+    const [room, cols, exams] = await Promise.all([
+      this.sb.from('gb_classrooms').select('*').eq('id', id).maybeSingle(),
+      this.sb.from('gb_columns').select('*').eq('classroom_id', id),
+      this.sb.from('exams').select('id', { count: 'exact', head: true }).eq('classroom_id', id),
+    ]);
+    const r = must(room) as any;
+    if (!r) return null;
+    const columns = (must(cols) as any[]).map(toGbColumn);
+    return toClassroomDetail(r, columns, exams.count ?? 0);
+  }
+
+  async createClassroom(input: ClassroomCreateInput): Promise<string> {
+    return this.rpc<string>('gb_classroom_create', { p: {
+      grade_id: input.gradeId, academic_year: input.academicYear, term: input.term, name: input.name,
+      student_count: input.studentCount, final_max: input.finalMax, settings: input.settings ?? {},
+      indicators: input.indicators.map((x) => ({ indicator_id: x.indicatorId, max_score: x.maxScore })),
+    } });
+  }
+
+  async updateClassroom(id: string, input: ClassroomUpdateInput): Promise<void> {
+    const p: Record<string, unknown> = {};
+    if (input.name !== undefined) p.name = input.name;
+    if (input.studentCount !== undefined) p.student_count = input.studentCount;
+    if (input.settings) p.settings = input.settings;
+    await this.rpc('gb_classroom_update', { p_classroom: id, p });
+  }
+
+  async deleteClassroom(id: string): Promise<void> {
+    await this.rpc('gb_classroom_delete', { p_classroom: id });
+  }
+
+  async addColumn(classroomId: string, kind: Exclude<GbColumnKind, 'final'>, indicatorId: string | null, label: string | null, maxScore: number | null): Promise<number> {
+    return Number(await this.rpc('gb_column_add', { p_classroom: classroomId, p_kind: kind, p_indicator: indicatorId, p_label: label, p_max: maxScore }));
+  }
+
+  async updateColumn(columnId: number, maxScore: number | null, label?: string | null): Promise<void> {
+    await this.rpc('gb_column_update', { p_column: columnId, p_max: maxScore, p_label: label ?? null, p_clear_max: maxScore === null });
+  }
+
+  async reorderColumns(classroomId: string, columnIds: number[]): Promise<void> {
+    await this.rpc('gb_column_reorder', { p_classroom: classroomId, p_ids: columnIds });
+  }
+
+  async deleteColumn(columnId: number): Promise<void> {
+    await this.rpc('gb_column_delete', { p_column: columnId });
+  }
 }
 
 function toExamSummary(e: any): ExamSummary {
@@ -323,4 +383,28 @@ function toSummary(r: any): ItemSummary {
 
 export function toScanResponse(r: any): ScanResponse {
   return { seatNo: r.seat_no, setNo: r.set_no, answers: r.answers, score: r.score, flags: r.flags ?? [], source: r.source, scannedAt: r.scanned_at };
+}
+
+// ---------- One Stop: แปลงข้อมูลห้องเรียน/ช่องคะแนน (ใช้ร่วมกับชุดทดสอบ) ----------
+export function toClassroomSummary(r: any): ClassroomSummary {
+  return { id: r.id, name: r.name, gradeId: r.grade_id, academicYear: Number(r.academic_year), term: Number(r.term),
+    studentCount: Number(r.student_count), status: r.status, createdAt: r.created_at, closedAt: r.closed_at ?? null,
+    columnCount: Number(r.column_count ?? 0), examCount: Number(r.exam_count ?? 0) };
+}
+
+export function toGbColumn(c: any): GbColumn {
+  return { id: Number(c.id), kind: c.kind, indicatorId: c.indicator_id ?? null, label: c.label ?? null,
+    maxScore: c.max_score === null || c.max_score === undefined ? null : Number(c.max_score), sort: Number(c.sort) };
+}
+
+/** ช่องเรียงตามแผนการสอน (sort แล้ว id) · ปลายภาคอยู่ท้ายเสมอ */
+export function sortColumns(cols: GbColumn[]): GbColumn[] {
+  return [...cols].sort((a, b) => (a.kind === 'final' ? 1 : 0) - (b.kind === 'final' ? 1 : 0) || a.sort - b.sort || a.id - b.id);
+}
+
+export function toClassroomDetail(r: any, columns: GbColumn[], examCount: number): ClassroomDetail {
+  return {
+    ...toClassroomSummary({ ...r, column_count: columns.filter((c) => c.kind !== 'final').length, exam_count: examCount }),
+    subjectId: r.subject_id, settings: r.settings ?? {}, columns: sortColumns(columns),
+  };
 }

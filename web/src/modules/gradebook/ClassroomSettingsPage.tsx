@@ -77,7 +77,8 @@ export function ClassroomSettingsPage({ id, route }: { id: string; route: Route 
           onSave={(name, n) => act(() => repo.updateClassroom(room.id, { name, studentCount: n }), 'บันทึกข้อมูลห้องแล้ว')} />
 
         <section className="card builder-step">
-          <h2>ช่องคะแนน <small className="sub">เรียงตามแผนการสอน — ลากหรือกดลูกศรเพื่อสลับ</small></h2>
+          <h2>ช่องคะแนน</h2>
+          <p className="sub" style={{ marginBottom: 10 }}>เรียงตามแผนการสอน — ลากหรือกดลูกศรเพื่อสลับ</p>
           <div className="score-total" data-testid="score-total">
             <span>ตัวชี้วัด <strong>{fmtScore(totals.collect)}</strong></span>
             <span>+ ปลายภาค <strong>{fmtScore(totals.final)}</strong></span>

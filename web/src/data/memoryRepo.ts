@@ -9,7 +9,7 @@ import type {
   BankExport, CognitiveLevel, CoverageCell, DifficultyLevel, ExamCreateInput, ExamDetail, ExamStatus, ExamSummary, Grade,
   ImportReport, Indicator, ItemAnswer, ItemContent, ItemDetail, ItemEvent, ItemFilter, ItemPage, ItemStatus, ItemSummary,
   ItemVersion, PoolItem, Profile, QaReport, SaveItemInput, ScanAnswer, ScanFlag, ScanResponse, ScanSaveInput, ScanSaveResult, Settings, ClosedSummary, RoundStat,
-  ClassroomCreateInput, ClassroomDetail, ClassroomSummary, ClassroomUpdateInput, GbColumn, GbColumnKind, GbSettings,
+  ClassroomCreateInput, ClassroomDetail, ClassroomSummary, ClassroomUpdateInput, GbColumn, GbColumnKind, GbSettings, ExamLink,
 } from '../core/types';
 import { GRADEBOOK_DEFAULT_SETTINGS } from '../modules/gradebook/plan';
 import { analysisConfigFromSettings, analyze } from '../modules/analysis/analyze';
@@ -63,6 +63,8 @@ interface MemExam {
   sets: ExamCreateInput['sets'];
   openedAt: string | null; expiresAt: string | null; closedAt: string | null;
   closedSummary: ClosedSummary | null; roundStats: RoundStat[];
+  /** One Stop: ห้อง/ประเภทการสอบ/สอบซ่อม · gbSeats = เลขที่ที่มีคะแนนในสมุดหลังปิดชุด (คำตอบถูกลบแต่คะแนนอยู่จนปิดเทอม) */
+  classroomId: string | null; purpose: ExamLink['purpose']; retakeOf: string | null; gbSeats: number[];
 }
 
 const clone = <T,>(v: T): T => structuredClone(v);
@@ -397,6 +399,7 @@ export class MemoryRepo implements Repo {
     const ordering = makeOrdering(this.indicators, await this.getGrades(), await this.getDifficultyLevels());
     const pool = await this.getAssemblyPool(input.subjectId);
     checkCreateInput(input, pool, cfg, ordering);
+    if (input.link) this.checkLink(null, { gradeId: input.gradeId, studentCount: input.studentCount, subjectId: input.subjectId }, input.link);
     const byId = new Map(pool.map((p) => [p.id, p]));
     this.examSeq += 1;
     const id = `exam-${this.examSeq}`;
@@ -408,6 +411,7 @@ export class MemoryRepo implements Repo {
         return { itemId: x.itemId, version: x.version, basePosition: x.basePosition, isAnchor: p.n >= cfg.anchorMinN, indicatorId: p.indicatorId, difficulty: p.difficulty }; }),
       sets: clone(input.sets).sort((a, b) => a.setNo - b.setNo),
       openedAt: null, expiresAt: null, closedAt: null, closedSummary: null, roundStats: [],
+      ...this.normalizedLink(input.link), gbSeats: [],
     });
     for (const x of input.items) {
       const it = this.items.find((i) => i.id === x.itemId)!;
@@ -422,7 +426,7 @@ export class MemoryRepo implements Repo {
   private examSummary(e: MemExam): ExamSummary {
     return { id: e.id, title: e.title, gradeId: e.gradeId, itemCount: e.items.length, setCount: e.setCount,
       studentCount: e.studentCount, status: e.status, createdAt: e.createdAt, durationMin: e.durationMin,
-      expiresAt: e.expiresAt, closedAt: e.closedAt };
+      expiresAt: e.expiresAt, closedAt: e.closedAt, classroomId: e.classroomId, purpose: e.purpose, retakeOf: e.retakeOf };
   }
 
   async listExams(subjectId: string): Promise<ExamSummary[]> {
@@ -448,6 +452,7 @@ export class MemoryRepo implements Repo {
       hasResponses: (this.scans.get(e.id)?.size ?? 0) > 0,
       templateVersion: 1,
       openedAt: e.openedAt, closedSummary: clone(e.closedSummary), roundStats: clone(e.roundStats),
+      scoredSeats: this.scoredSeats(e).length,
     };
   }
 
@@ -456,6 +461,7 @@ export class MemoryRepo implements Repo {
     if (!e) throw new Error('ไม่พบชุดข้อสอบ');
     if (e.status === 'open' || (this.scans.get(id)?.size ?? 0) > 0) throw new Error('ลบได้เฉพาะชุดที่ยังไม่เริ่มสอบหรือปิดชุดแล้ว — ชุดนี้กำลังสอบ ให้ปิดชุดก่อน');
     this.exams = this.exams.filter((x) => x.id !== id);
+    for (const x of this.exams) if (x.retakeOf === id) x.retakeOf = null;   // on delete set null
   }
 
   async updateExamMeta(id: string, title: string, durationMin: number): Promise<void> {
@@ -510,7 +516,7 @@ export class MemoryRepo implements Repo {
       e.status = 'open';
       e.openedAt = e.openedAt ?? now();
       const days = Number(this.settingsMap()['privacy.exam_expiry_days'] ?? 60);
-      e.expiresAt = e.expiresAt ?? new Date(Date.parse(e.openedAt) + days * 86_400_000).toISOString();
+      if (!e.classroomId) e.expiresAt = e.expiresAt ?? new Date(Date.parse(e.openedAt) + days * 86_400_000).toISOString();
     }
     return { status: old ? 'replaced' : 'saved', response: clone(r) };
   }
@@ -556,6 +562,7 @@ export class MemoryRepo implements Repo {
       indicators: a.indicators.map((x) => ({ indicatorId: x.indicatorId, itemCount: x.itemCount, passCount: x.passCount, meanRatio: x.meanRatio })),
       itemsRecorded: stats.length, responsesDeleted: rows.size, finalizedAs: as, finalizedAt: now(),
     };
+    e.gbSeats = this.scoredSeats(e);   // คะแนนในสมุดอยู่ต่อหลังปิดชุด (เหมือน 0011)
     this.scans.delete(e.id);
     e.status = as;
     e.closedAt = now();
@@ -777,7 +784,7 @@ export class MemoryRepo implements Repo {
   private classroomSummary(c: MemClassroom): ClassroomSummary {
     return { id: c.id, name: c.name, gradeId: c.gradeId, academicYear: c.academicYear, term: c.term, studentCount: c.studentCount,
       status: c.status, createdAt: c.createdAt, closedAt: c.closedAt,
-      columnCount: c.columns.filter((x) => x.kind !== 'final').length, examCount: 0 };
+      columnCount: c.columns.filter((x) => x.kind !== 'final').length, examCount: this.exams.filter((e) => e.classroomId === c.id).length };
   }
   private findColumn(columnId: number) {
     const c = this.classrooms.find((x) => x.columns.some((k) => k.id === columnId));
@@ -829,8 +836,55 @@ export class MemoryRepo implements Repo {
     Object.assign(c, { name, studentCount, settings });
   }
   async deleteClassroom(id: string): Promise<void> {
-    this.requireClassroom(id, false);
+    const c = this.requireClassroom(id, false);
+    if (c.status === 'open' && this.exams.some((e) => e.classroomId === id && this.scoredSeats(e).length > 0)) {
+      throw new Error('ห้องนี้มีคะแนนจากการสอบแล้ว — ให้ปิดเทอมก่อนจึงลบได้');
+    }
+    for (const e of this.exams) if (e.classroomId === id) Object.assign(e, { classroomId: null, purpose: 'practice', retakeOf: null });
     this.classrooms = this.classrooms.filter((x) => x.id !== id);
+  }
+
+  // ---------- One Stop เฟส 3: ผูกชุดข้อสอบกับห้อง (เลียนแบบ gb_exam_link + 0012) ----------
+  /** เลขที่ที่มีคะแนนในสมุดจากชุดนี้ (เฉพาะชุดผูกห้องที่เป็นเก็บคะแนน/ปลายภาค) */
+  private scoredSeats(e: MemExam): number[] {
+    if (!e.classroomId || e.purpose === 'practice') return [];
+    const live = this.scans.get(e.id);
+    return live ? [...live.keys()].sort((a, b) => a - b) : [...e.gbSeats];
+  }
+  private normalizedLink(link?: ExamLink) {
+    if (!link) return { classroomId: null, purpose: 'practice' as const, retakeOf: null };
+    const root = link.retakeOf ? this.exams.find((x) => x.id === link.retakeOf) : null;
+    return { classroomId: link.classroomId, purpose: link.purpose, retakeOf: root ? (root.retakeOf ?? root.id) : null };
+  }
+  private checkLink(examId: string | null, ex: { gradeId: string; studentCount: number; subjectId: string }, link: ExamLink) {
+    if (!['collect', 'final', 'practice'].includes(link.purpose)) throw new Error('ประเภทการสอบไม่ถูกต้อง');
+    if (!link.classroomId) {
+      if (link.purpose !== 'practice') throw new Error('ชุดเก็บคะแนน/ปลายภาคต้องเลือกห้องเรียน');
+      if (link.retakeOf) throw new Error('สอบซ่อมต้องเลือกห้องเรียน');
+      return;
+    }
+    const c = this.requireClassroom(link.classroomId);
+    if (c.subjectId !== ex.subjectId) throw new Error('วิชาของชุดข้อสอบไม่ตรงกับห้อง');
+    if (c.gradeId !== ex.gradeId) throw new Error(`ชั้นของชุดข้อสอบไม่ตรงกับชั้นของห้อง ${c.name}`);
+    if (link.retakeOf) {
+      const root = this.exams.find((x) => x.id === link.retakeOf);
+      if (!root) throw new Error('ไม่พบชุดข้อสอบเดิม');
+      if (root.id === examId) throw new Error('ชุดข้อสอบเป็นสอบซ่อมของตัวเองไม่ได้');
+      if (root.classroomId !== link.classroomId || root.purpose !== link.purpose) throw new Error('สอบซ่อมต้องอยู่ห้องเดียวกันและประเภทการสอบเดียวกับชุดเดิม');
+      if (examId && this.exams.some((x) => x.retakeOf === examId)) throw new Error('ชุดนี้มีสอบซ่อมผูกอยู่แล้ว จึงเป็นสอบซ่อมของชุดอื่นไม่ได้');
+    } else if (link.purpose !== 'practice' && ex.studentCount < c.studentCount) {
+      throw new Error(`ห้อง ${c.name} มีนักเรียน ${c.studentCount} คน แต่ชุดข้อสอบมีเลขที่ถึง ${ex.studentCount} — ตั้งจำนวนนักเรียนของชุดให้ครบทั้งห้อง`);
+    }
+  }
+  async linkExam(examId: string, link: ExamLink): Promise<void> {
+    this.requireSignedIn();
+    const e = this.exams.find((x) => x.id === examId);
+    if (!e) throw new Error('ไม่พบชุดข้อสอบ');
+    if (e.status === 'closed' || e.status === 'expired') throw new Error('ชุดข้อสอบนี้ปิดแล้ว');
+    if ((this.scans.get(examId)?.size ?? 0) > 0) throw new Error('ชุดข้อสอบนี้มีผลตรวจแล้ว เปลี่ยนห้อง/ประเภทการสอบไม่ได้');
+    this.checkLink(examId, e, link);
+    Object.assign(e, this.normalizedLink(link));
+    if (e.classroomId) e.expiresAt = null;
   }
   async addColumn(classroomId: string, kind: Exclude<GbColumnKind, 'final'>, indicatorId: string | null, label: string | null, maxScore: number | null): Promise<number> {
     return this.addColumnInternal(this.requireClassroom(classroomId), kind, indicatorId, label, maxScore);

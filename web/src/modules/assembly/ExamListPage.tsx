@@ -1,7 +1,8 @@
 // รายการชุดข้อสอบของผู้ใช้
 import { useEffect, useState } from 'react';
 import { repo } from '../../data';
-import { EXAM_STATUS_TH, type ExamSummary } from '../../core/types';
+import { EXAM_STATUS_TH, type ClassroomSummary, type ExamSummary } from '../../core/types';
+import { linkLabel } from '../gradebook/examLink';
 import { href } from '../../ui/router';
 import { useRefData } from '../core/useRefData';
 import { ExpiryNotice, daysLeft, warnDays } from '../analysis/expiry';
@@ -10,7 +11,10 @@ export function ExamListPage() {
   const { data: ref } = useRefData();
   const [exams, setExams] = useState<ExamSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [rooms, setRooms] = useState<ClassroomSummary[]>([]);
   useEffect(() => { repo.listExams('MATH').then(setExams, (e) => setError((e as Error).message)); }, []);
+  useEffect(() => { repo.listClassrooms().then(setRooms, () => setRooms([])); }, []);
+  const roomName = (id: string) => rooms.find((r) => r.id === id)?.name;
   const gradeShort = (id: string) => ref?.grades.find((g) => g.id === id)?.shortTh ?? id;
 
   return (
@@ -35,6 +39,7 @@ export function ExamListPage() {
               <div className="item-top">
                 <strong>{e.title}</strong>
                 <span className={`chip ex-${e.status}`}>{EXAM_STATUS_TH[e.status]}</span>
+                <span className={`chip pu-${e.purpose}`} data-testid="exam-link">{linkLabel(e, roomName)}</span>
                 {e.status === 'open' && daysLeft(e.expiresAt) !== null && daysLeft(e.expiresAt)! <= warnDays(ref?.settings)
                   && <span className="chip weak">ลบข้อมูลรายเลขที่ใน {daysLeft(e.expiresAt)} วัน</span>}
               </div>

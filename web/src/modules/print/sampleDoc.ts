@@ -42,6 +42,7 @@ export function sampleExam(ref: { indicators: Indicator[]; grades: Grade[]; diff
     id: '0b6c1f2e-6a3d-4c55-9e1a-1234567890ab', title: 'แบบทดสอบ คณิตศาสตร์ ป.5 (ตัวอย่าง)', gradeId: 'P5', itemCount: pool.length,
     setCount, studentCount: students, status: 'draft', createdAt: new Date(0).toISOString(), durationMin: 30,
     rows: req.rows, build: null, hasResponses: false, templateVersion: 1, openedAt: null, expiresAt: null, closedAt: null, closedSummary: null, roundStats: [],
+    classroomId: null, purpose: 'practice', retakeOf: null, scoredSeats: 0,
     items: plan.items.map((x) => ({ itemId: x.item.id, itemCode: x.item.itemCode, version: 1, basePosition: x.basePosition,
       indicatorId: x.item.indicatorId, difficulty: x.item.difficulty, isAnchor: x.isAnchor, noShuffle: x.item.noShuffle, n: x.item.n,
       content: content.get(x.item.id)!.c, answer: content.get(x.item.id)!.answer })),

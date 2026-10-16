@@ -191,6 +191,8 @@ td.cell .pending { display: block; font-size: .72rem; color: var(--muted); }
 .qa-alert::before { content: '⚠ '; }
 .chip.ex-draft { background: var(--st-reviewed); } .chip.ex-open { background: var(--st-active); }
 .chip.ex-closed, .chip.ex-expired { background: var(--st-retired); color: var(--muted); }
+.chip.pu-collect { background: var(--ok-bg); color: var(--accent); font-weight: 600; } .chip.pu-final { background: var(--low-bg); color: var(--warn); font-weight: 600; }
+.link-fields .tabs { flex-wrap: wrap; }
 .builder-step { margin-bottom: 12px; }
 .builder-step h2 { display: flex; align-items: center; gap: 8px; }
 .step-no { display: inline-grid; place-items: center; min-width: 28px; height: 28px; padding: 0 6px; border-radius: 999px; background: var(--accent); color: var(--accent-ink); font-size: .8rem; }

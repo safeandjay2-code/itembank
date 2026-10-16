@@ -3,7 +3,7 @@
 import type {
   BankExport, CognitiveLevel, CoverageCell, DifficultyLevel, ExamCreateInput, ExamDetail, ExamSummary, Grade, ImportReport,
   Indicator, ItemDetail, ItemFilter, ItemPage, ItemStatus, PoolItem, Profile, SaveItemInput, ScanAnswer, ScanResponse, ScanSaveInput,
-  ScanSaveResult, Settings, ClosedSummary, ClassroomCreateInput, ClassroomDetail, ClassroomSummary, ClassroomUpdateInput, GbColumnKind,
+  ScanSaveResult, Settings, ClosedSummary, ClassroomCreateInput, ClassroomDetail, ClassroomSummary, ClassroomUpdateInput, GbColumnKind, ExamLink,
 } from '../core/types';
 import type { BankHealth, CalibrationRun, ItemCalibrationInfo } from '../modules/calibration/calibrate';
 
@@ -43,7 +43,7 @@ export interface Repo {
   // ---------- ประกอบชุดข้อสอบ (เฟส 3) ----------
   /** ข้อพร้อมใช้ (ตรวจแล้ว/ใช้งาน) แบบข้อมูลย่อ ไม่มีโจทย์ — ใช้เลือกข้อและสลับในหน้าเว็บ */
   getAssemblyPool(subjectId: string): Promise<PoolItem[]>;
-  /** บันทึกชุดข้อสอบ (ฐานข้อมูลตรวจกฎ §6 ซ้ำทั้งหมด) คืนค่า id ของชุด */
+  /** บันทึกชุดข้อสอบ (ฐานข้อมูลตรวจกฎ §6 ซ้ำทั้งหมด) คืนค่า id ของชุด · มี link = ผูกห้อง/ประเภทการสอบในคำสั่งเดียว (ผิดข้อใดไม่สร้างเลย) */
   createExam(input: ExamCreateInput): Promise<string>;
   /** รายการชุดข้อสอบ (ก่อนคืนผล ชุดที่ครบกำหนดหมดอายุจะถูกปิดอัตโนมัติ — SPEC §10) */
   listExams(subjectId: string): Promise<ExamSummary[]>;
@@ -86,6 +86,8 @@ export interface Repo {
   updateClassroom(id: string, input: ClassroomUpdateInput): Promise<void>;
   /** ลบห้อง (ห้องที่เปิดอยู่และมีคะแนนจากการสอบแล้ว ลบไม่ได้ ต้องปิดเทอมก่อน) */
   deleteClassroom(id: string): Promise<void>;
+  /** เปลี่ยนห้อง/ประเภทการสอบ/สอบซ่อมของชุด (ได้เฉพาะชุดที่ยังไม่มีผลตรวจ) — One Stop เฟส 3 */
+  linkExam(examId: string, link: ExamLink): Promise<void>;
   /** เพิ่มช่องต่อท้าย (ตัวชี้วัด หรือช่องอื่น) คืนค่า id ของช่อง */
   addColumn(classroomId: string, kind: Exclude<GbColumnKind, 'final'>, indicatorId: string | null, label: string | null, maxScore: number | null): Promise<number>;
   /** แก้คะแนนเต็ม (null = ยังไม่ตั้ง) และชื่อช่อง (เฉพาะช่องอื่น) */

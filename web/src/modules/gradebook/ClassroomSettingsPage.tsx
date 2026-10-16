@@ -2,7 +2,8 @@
 // ทุกการแก้บันทึกทันที (คะแนนดิบเก็บแยกจากคะแนนเต็ม — แก้เมื่อไรก็คำนวณใหม่ ไม่ต้องกรอกซ้ำ)
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { repo } from '../../data';
-import type { ClassroomDetail, GbColumn, GbSettings } from '../../core/types';
+import { EXAM_STATUS_TH, type ClassroomDetail, type ExamSummary, type GbColumn, type GbSettings } from '../../core/types';
+import { linkLabel } from './examLink';
 import type { Route } from '../../ui/router';
 import { navigate } from '../../ui/router';
 import { useRefData } from '../core/useRefData';
@@ -19,6 +20,8 @@ export function ClassroomSettingsPage({ id, route }: { id: string; route: Route 
   const [room, setRoom] = useState<ClassroomDetail | null | undefined>(undefined);
   const [status, setStatus] = useState<Status>(route.params.get('created') ? { kind: 'ok', text: 'สร้างห้องเรียนแล้ว' } : null);
   const [busy, setBusy] = useState(false);
+  const [exams, setExams] = useState<ExamSummary[]>([]);
+  useEffect(() => { repo.listExams('MATH').then((xs) => setExams(xs.filter((e) => e.classroomId === id)), () => setExams([])); }, [id]);
 
   const reload = useCallback(() => repo.getClassroom(id).then(setRoom, (e) => setStatus({ kind: 'error', text: (e as Error).message })), [id]);
   useEffect(() => { reload(); }, [reload]);
@@ -71,6 +74,27 @@ export function ClassroomSettingsPage({ id, route }: { id: string; route: Route 
       </div>
       {status && <div className={status.kind === 'ok' ? 'notice' : 'error box'} role={status.kind === 'error' ? 'alert' : 'status'} data-testid="class-status">{status.text}</div>}
       {closed && <div className="banner">ห้องนี้ปิดเทอมแล้ว — ดูได้อย่างเดียว แก้ไขไม่ได้</div>}
+
+      <section className="card builder-step" data-testid="room-exams">
+        <div className="page-head" style={{ marginBottom: 6 }}>
+          <h2 style={{ margin: 0 }}>ชุดข้อสอบของห้องนี้ ({exams.length})</h2>
+          {!closed && <a className="btn" href={`#/exams/new?classroom=${encodeURIComponent(room.id)}`} data-testid="room-new-exam">+ สร้างชุดข้อสอบสำหรับห้องนี้</a>}
+        </div>
+        {exams.length === 0
+          ? <p className="sub">ยังไม่มี — ชุดเก็บคะแนน/ปลายภาคที่ผูกห้องนี้ ผลตรวจจะลงสมุดคะแนนของห้องอัตโนมัติ</p>
+          : (
+            <ul className="item-list">
+              {exams.map((e) => (
+                <li key={e.id}><a className="item-row" href={`#/exams/${e.id}`}>
+                  <div className="item-top"><strong>{e.title}</strong>
+                    <span className={`chip ex-${e.status}`}>{EXAM_STATUS_TH[e.status]}</span>
+                    <span className={`chip pu-${e.purpose}`}>{linkLabel({ ...e, classroomId: null }, () => undefined)}</span></div>
+                  <div className="item-flags"><span>{e.itemCount} ข้อ</span><span>นักเรียน {e.studentCount} คน</span></div>
+                </a></li>
+              ))}
+            </ul>
+          )}
+      </section>
 
       <fieldset className="plain" disabled={closed}>
         <RoomInfo room={room} maxStudents={d.maxStudents} busy={busy}

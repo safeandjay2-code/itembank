@@ -1,7 +1,9 @@
 // รายละเอียดชุดข้อสอบ: คำเตือนตอนสร้าง, เฉลยและการกระจายเฉลยรายชุด, ลำดับข้อแต่ละชุด, เลขที่ → ชุด, ข้อในชุด
 import { useEffect, useState } from 'react';
 import { repo } from '../../data';
-import { EXAM_STATUS_TH, type ExamDetail } from '../../core/types';
+import { EXAM_STATUS_TH, type ClassroomSummary, type ExamDetail, type ExamLink, type ExamSummary } from '../../core/types';
+import { ExamLinkFields } from '../gradebook/ExamLinkFields';
+import { linkLabel, linkProblems } from '../gradebook/examLink';
 import { navigate, type Route } from '../../ui/router';
 import { useRefData } from '../core/useRefData';
 import { expiryText, thDate } from '../analysis/expiry';
@@ -16,7 +18,14 @@ export function ExamDetailPage({ id, route, canOpenItems }: { id: string; route:
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => { repo.getExam(id).then(setExam, (e) => setError((e as Error).message)); }, [id]);
+  const [rooms, setRooms] = useState<ClassroomSummary[]>([]);
+  const [exams, setExams] = useState<ExamSummary[]>([]);
+  const [editLink, setEditLink] = useState<ExamLink | null>(null);
+  const [linkMsg, setLinkMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const load = () => repo.getExam(id).then(setExam, (e) => setError((e as Error).message));
+  useEffect(() => { load(); }, [id]);   // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { repo.listClassrooms().then(setRooms, () => setRooms([])); }, []);
 
   if (error) return <div className="error" role="alert">{error}</div>;
   if (exam === undefined) return <p className="sub">กำลังโหลด…</p>;
@@ -32,6 +41,29 @@ export function ExamDetailPage({ id, route, canOpenItems }: { id: string; route:
   const noShuffle = exam.items.filter((i) => i.noShuffle).length;
   const warnings = exam.build?.warnings ?? [];
   const infos = exam.build?.infos ?? [];
+
+  const roomName = (rid: string) => rooms.find((r) => r.id === rid)?.name;
+  const room = exam.classroomId ? rooms.find((r) => r.id === exam.classroomId) : undefined;
+  const canRelink = (exam.status === 'draft' || exam.status === 'open') && !exam.hasResponses;
+  const rootTitle = exam.retakeOf ? exams.find((x) => x.id === exam.retakeOf)?.title : undefined;
+
+  async function startEdit() {
+    setLinkMsg(null);
+    setEditLink({ classroomId: exam!.classroomId, purpose: exam!.purpose, retakeOf: exam!.retakeOf });
+    repo.listExams('MATH').then(setExams, () => setExams([]));
+  }
+  async function saveLink() {
+    if (!editLink) return;
+    setBusy(true);
+    try {
+      await repo.linkExam(exam!.id, editLink);
+      setEditLink(null);
+      setLinkMsg({ ok: true, text: 'บันทึกห้อง/ประเภทการสอบแล้ว' });
+      await load();
+    } catch (e) { setLinkMsg({ ok: false, text: (e as Error).message }); }
+    finally { setBusy(false); }
+  }
+  const editProblems = editLink ? linkProblems(editLink, exam, rooms.find((r) => r.id === editLink.classroomId)) : [];
 
   async function remove() {
     setBusy(true);
@@ -62,6 +94,39 @@ export function ExamDetailPage({ id, route, canOpenItems }: { id: string; route:
         </div>
       )}
       {route.params.get('created') && <div className="notice" role="status">สร้างชุดข้อสอบเรียบร้อย — ฐานข้อมูลตรวจกฎการประกอบชุดผ่านทุกข้อแล้ว</div>}
+
+      <section className="card" data-testid="exam-link-card">
+        <h2>ใช้สอบแบบไหน</h2>
+        {!editLink && (
+          <>
+            <p data-testid="exam-link-label">
+              <strong>{linkLabel(exam, roomName)}</strong>
+              {rootTitle && <> — สอบซ่อมของ "{rootTitle}"</>}
+            </p>
+            {exam.purpose !== 'practice' && room && (
+              <p className="hint-line">ผลตรวจทุกแผ่นลงสมุดคะแนนของห้อง <a href={`#/classes/${room.id}`}>{room.name}</a> อัตโนมัติ
+                {exam.scoredSeats > 0 && <> · ตอนนี้มีคะแนน {exam.scoredSeats} คน</>}
+                {exam.status === 'closed' && <> · ปิดชุดแล้วคะแนนในสมุดยังอยู่จนปิดเทอม</>}</p>
+            )}
+            {exam.purpose === 'practice' && <p className="hint-line">ชุดฝึก — ไม่นับคะแนน ดูผลวิเคราะห์อย่างเดียว</p>}
+            {canRelink
+              ? <button className="btn ghost" onClick={startEdit} data-testid="relink">เปลี่ยนห้อง/ประเภทการสอบ…</button>
+              : (exam.status === 'draft' || exam.status === 'open') && <p className="hint-line">มีผลตรวจแล้ว เปลี่ยนห้อง/ประเภทการสอบไม่ได้</p>}
+          </>
+        )}
+        {editLink && (
+          <>
+            <ExamLinkFields link={editLink} onChange={setEditLink} classrooms={rooms.filter((r) => r.status === 'open')} exams={exams}
+              selfId={exam.id} gradeShort={(g) => ref?.grades.find((x) => x.id === g)?.shortTh ?? g} />
+            {editProblems.length > 0 && <ul className="qa-list">{editProblems.map((m, i) => <li key={i} className="qa-error">{m}</li>)}</ul>}
+            <div className="actions">
+              <button className="btn" disabled={busy || editProblems.length > 0} onClick={saveLink}>บันทึก</button>
+              <button className="btn ghost" onClick={() => setEditLink(null)}>ยกเลิก</button>
+            </div>
+          </>
+        )}
+        {linkMsg && <div className={linkMsg.ok ? 'notice' : 'error box'} role={linkMsg.ok ? 'status' : 'alert'} data-testid="link-msg">{linkMsg.text}</div>}
+      </section>
 
       {(warnings.length > 0 || infos.length > 0) && (
         <ul className="qa-list" data-testid="exam-notices">
@@ -150,6 +215,12 @@ export function ExamDetailPage({ id, route, canOpenItems }: { id: string; route:
             : (
               <div className="confirm" role="alertdialog" aria-label="ยืนยันการลบชุดข้อสอบ">
                 <p>ลบชุดข้อสอบ "{exam.title}" ทั้งหมด? ข้อสอบในคลังไม่ถูกลบ{exam.status !== 'draft' && ' และสถิติที่บันทึกเข้าคลังแล้วยังอยู่'}</p>
+                {exam.scoredSeats > 0 && (
+                  <p className="error box" data-testid="delete-scores-warning">
+                    คะแนนจากชุดนี้ในสมุดคะแนนของห้อง {room?.name ?? ''} ({exam.scoredSeats} คน) จะหายไปด้วย และกู้คืนไม่ได้
+                    — ถ้ายังต้องใช้คะแนนนี้ อย่าลบจนกว่าจะปิดเทอม
+                  </p>
+                )}
                 <div className="actions">
                   <button className="btn danger" disabled={busy} onClick={remove}>ยืนยันลบ</button>
                   <button className="btn ghost" onClick={() => setConfirmDelete(false)}>ยกเลิก</button>

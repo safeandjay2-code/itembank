@@ -214,6 +214,19 @@ export interface ExamCreateInput {
   items: Array<{ itemId: string; version: number; basePosition: number }>;
   sets: Array<{ setNo: number; entries: Array<{ itemId: string; optionOrder: number[] }> }>;
   build: { algorithm: string; seed: number; warnings: Notice[]; infos: Notice[]; anchorCount: number; anchorTarget: number };
+  /** One Stop: ผูกห้อง + ประเภทการสอบ (ไม่ส่ง = ชุดฝึกแบบเดิม) */
+  link?: ExamLink;
+}
+
+// ---------- One Stop: ประเภทการสอบ (SPEC-OneStop §4) ----------
+export type ExamPurpose = 'collect' | 'final' | 'practice';
+export const EXAM_PURPOSE_TH: Record<ExamPurpose, string> = { collect: 'เก็บคะแนน', final: 'ปลายภาค', practice: 'ฝึก/วินิจฉัย' };
+export interface ExamLink {
+  /** null = ไม่ผูกห้อง (ได้เฉพาะชุดฝึก) */
+  classroomId: string | null;
+  purpose: ExamPurpose;
+  /** สอบซ่อม/สอบซ้ำของชุดไหน (ห้องเดียวกัน ประเภทเดียวกัน) */
+  retakeOf: string | null;
 }
 
 export type ExamStatus = 'draft' | 'open' | 'closed' | 'expired';
@@ -233,6 +246,10 @@ export interface ExamSummary {
   /** วันที่ข้อมูลรายเลขที่จะถูกลบอัตโนมัติ (นับจากวันเริ่มตรวจ) — null = ยังไม่เริ่มตรวจ/ปิดแล้ว */
   expiresAt: string | null;
   closedAt: string | null;
+  /** One Stop: ห้องที่ผูก (null = ไม่ผูก) · ประเภทการสอบ · สอบซ่อมของชุดไหน */
+  classroomId: string | null;
+  purpose: ExamPurpose;
+  retakeOf: string | null;
 }
 
 export interface ExamItemDetail {
@@ -264,6 +281,8 @@ export interface ExamDetail extends ExamSummary {
   closedSummary: ClosedSummary | null;
   /** สถิติรายข้อที่ชุดนี้บันทึกเข้าคลังตอนปิดชุด */
   roundStats: RoundStat[];
+  /** One Stop: จำนวนเลขที่ที่มีคะแนนจากชุดนี้อยู่ในสมุดคะแนน (ลบชุด = คะแนนเหล่านี้หาย) */
+  scoredSeats: number;
 }
 
 // ---------- วิเคราะห์และปิดชุด (เฟส 6) ----------

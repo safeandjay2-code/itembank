@@ -4,7 +4,7 @@ import type {
   BankExport, CognitiveLevel, CoverageCell, DifficultyLevel, ExamCreateInput, ExamDetail, ExamSummary, Grade, ImportReport,
   Indicator, ItemDetail, ItemFilter, ItemPage, ItemStatus, ItemSummary, ItemVersion, PoolItem, Profile, SaveItemInput, ScanAnswer, ScanResponse,
   ScanSaveInput, ScanSaveResult, Settings, ClosedSummary, ClassroomCreateInput, ClassroomDetail, ClassroomSummary, ClassroomUpdateInput,
-  GbColumn, GbColumnKind,
+  GbColumn, GbColumnKind, ExamLink,
 } from '../core/types';
 import { toDbPayload } from '../modules/assembly/payload';
 import type { BankHealth, CalibrationRun, ItemCalibrationInfo } from '../modules/calibration/calibrate';
@@ -176,7 +176,10 @@ export class SupabaseRepo implements Repo {
   }
 
   async createExam(input: ExamCreateInput): Promise<string> {
-    const { data, error } = await this.sb.rpc('exam_create', { p: toDbPayload(input) });
+    const p = input.link
+      ? { ...toDbPayload(input), classroom_id: input.link.classroomId, purpose: input.link.purpose, retake_of: input.link.retakeOf }
+      : toDbPayload(input);
+    const { data, error } = await this.sb.rpc('exam_create_linked', { p });
     if (error) throw new Error(error.message);
     return data as string;
   }
@@ -184,7 +187,7 @@ export class SupabaseRepo implements Repo {
   async listExams(subjectId: string): Promise<ExamSummary[]> {
     // ชุดที่ครบ 60 วันหลังเริ่มตรวจ → รวมสถิติแล้วลบข้อมูลรายเลขที่ (สำรองของ pg_cron — ล้มเหลวก็ยังแสดงรายการได้)
     await this.sb.rpc('exam_expire_due').then(() => undefined, () => undefined);
-    const rows = must(await this.sb.from('exams').select('id,title,grade_id,item_count,set_count,student_count,status,created_at,duration_min,expires_at,closed_at')
+    const rows = must(await this.sb.from('exams').select('id,title,grade_id,item_count,set_count,student_count,status,created_at,duration_min,expires_at,closed_at,classroom_id,purpose,retake_of')
       .eq('subject_id', subjectId).order('created_at', { ascending: false })) as any[];
     return rows.map(toExamSummary);
   }
@@ -195,7 +198,14 @@ export class SupabaseRepo implements Repo {
       if (/ไม่พบชุดข้อสอบ|invalid input syntax/.test(error.message)) return null;
       throw new Error(error.message);
     }
-    return toExamDetail(data);
+    // ห้อง/ประเภทการสอบ (คอลัมน์ใหม่ของ 0011 — exam_get เดิมไม่ส่ง) + เลขที่ที่มีคะแนนในสมุด (gb_attempts อ่านได้เฉพาะเจ้าของ)
+    const [link, scored] = await Promise.all([
+      this.sb.from('exams').select('classroom_id,purpose,retake_of').eq('id', id).maybeSingle(),
+      this.sb.from('gb_attempts').select('seat_no').eq('exam_id', id),
+    ]);
+    if (link.error) throw new Error(link.error.message);
+    if (scored.error) throw new Error(scored.error.message);
+    return { ...toExamDetail({ ...data, ...(link.data ?? {}) }), scoredSeats: new Set((scored.data ?? []).map((r: any) => r.seat_no)).size };
   }
 
   async deleteExam(id: string): Promise<void> {
@@ -309,6 +319,10 @@ export class SupabaseRepo implements Repo {
     await this.rpc('gb_classroom_delete', { p_classroom: id });
   }
 
+  async linkExam(examId: string, link: ExamLink): Promise<void> {
+    await this.rpc('gb_exam_link', { p_exam: examId, p_classroom: link.classroomId, p_purpose: link.purpose, p_retake_of: link.retakeOf });
+  }
+
   async addColumn(classroomId: string, kind: Exclude<GbColumnKind, 'final'>, indicatorId: string | null, label: string | null, maxScore: number | null): Promise<number> {
     return Number(await this.rpc('gb_column_add', { p_classroom: classroomId, p_kind: kind, p_indicator: indicatorId, p_label: label, p_max: maxScore }));
   }
@@ -329,7 +343,8 @@ export class SupabaseRepo implements Repo {
 function toExamSummary(e: any): ExamSummary {
   return { id: e.id, title: e.title, gradeId: e.grade_id, itemCount: e.item_count, setCount: e.set_count,
     studentCount: e.student_count, status: e.status, createdAt: e.created_at, durationMin: e.duration_min ?? null,
-    expiresAt: e.expires_at ?? null, closedAt: e.closed_at ?? null };
+    expiresAt: e.expires_at ?? null, closedAt: e.closed_at ?? null,
+    classroomId: e.classroom_id ?? null, purpose: e.purpose ?? 'practice', retakeOf: e.retake_of ?? null };
 }
 
 const numOrNull = (v: any) => (v === null || v === undefined ? null : Number(v));
@@ -364,6 +379,7 @@ export function toExamDetail(d: any): ExamDetail {
     closedSummary: d.closed_summary ? toClosedSummary(d.closed_summary) : null,
     roundStats: (d.round_stats ?? []).map((x: any) => ({ itemId: x.item_id, version: x.version, n: x.n, nCorrect: x.n_correct,
       r: numOrNull(x.r), optionCounts: x.option_counts ?? {} })),
+    scoredSeats: Number(d.scored_seats ?? 0),
   };
 }
 

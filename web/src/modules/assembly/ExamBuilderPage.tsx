@@ -1,8 +1,12 @@
 // หน้าสร้างชุดข้อสอบ (SPEC §6.1): จำนวนข้อ → จำนวนชุด → ตัวชี้วัด/ระดับ/จำนวน (หลายแถว) → จำนวนนักเรียน → "สร้างข้อสอบ"
 // อัลกอริทึมเลือก/เรียง/สลับทำงานในเบราว์เซอร์ แล้วฐานข้อมูลตรวจกฎซ้ำก่อนบันทึก
+// One Stop เฟส 3: เลือกห้อง + ประเภทการสอบ (เก็บคะแนน/ปลายภาค/ฝึก) + สอบซ่อม → บันทึกพร้อมชุดในคำสั่งเดียว
+//   ?classroom=<id> = มาจากหน้าห้องเรียน (เลือกห้องนั้น ประเภทเก็บคะแนนไว้ให้)
 import { useEffect, useMemo, useState } from 'react';
 import { repo } from '../../data';
-import type { AssemblyRow, PoolItem } from '../../core/types';
+import type { AssemblyRow, ClassroomDetail, ClassroomSummary, ExamLink, ExamSummary, PoolItem } from '../../core/types';
+import { ExamLinkFields } from '../gradebook/ExamLinkFields';
+import { PRACTICE_LINK, linkProblems, unplannedIndicators } from '../gradebook/examLink';
 import { navigate, type Route } from '../../ui/router';
 import { useRefData } from '../core/useRefData';
 import { buildPlan, cellKey, checkRequest, configFromSettings, isAnchor, makeOrdering, type Names } from './assemble';
@@ -28,11 +32,29 @@ export function ExamBuilderPage({ route }: { route: Route }) {
   const [studentCount, setStudentCount] = useState('30');
   const [rows, setRows] = useState<RowState[]>(() => [newRow()]);
   const [otherGrades, setOtherGrades] = useState(false);
+  const fromRoom = route.params.get('classroom');
+  const [link, setLink] = useState<ExamLink>(fromRoom ? { classroomId: fromRoom, purpose: 'collect', retakeOf: null } : PRACTICE_LINK);
+  const [classrooms, setClassrooms] = useState<ClassroomSummary[]>([]);
+  const [exams, setExams] = useState<ExamSummary[]>([]);
+  const [roomDetail, setRoomDetail] = useState<ClassroomDetail | null>(null);
 
   useEffect(() => { repo.getAssemblyPool('MATH').then(setPool, (e) => setError((e as Error).message)); }, []);
+  useEffect(() => {
+    repo.listClassrooms().then((cs) => setClassrooms(cs.filter((c) => c.status === 'open')), () => setClassrooms([]));
+    repo.listExams('MATH').then(setExams, () => setExams([]));
+  }, []);
+  const room = classrooms.find((c) => c.id === link.classroomId);
+  // เลือกห้องแล้ว: ชั้นตามห้อง · จำนวนนักเรียนครบห้อง (สอบซ่อมไม่บังคับ แก้เองได้)
+  useEffect(() => {
+    if (!room) { setRoomDetail(null); return; }
+    if (room.gradeId !== gradeId) changeGrade(room.gradeId);
+    if (!link.retakeOf) setStudentCount(String(room.studentCount));
+    repo.getClassroom(room.id).then(setRoomDetail, () => setRoomDetail(null));
+  }, [room?.id, link.retakeOf]);   // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (ref && !gradeId) setGradeId(ref.grades[0]?.id ?? ''); }, [ref, gradeId]);
   const grade = ref?.grades.find((g) => g.id === gradeId);
-  useEffect(() => { if (grade && !titleEdited) setTitle(`แบบทดสอบ คณิตศาสตร์ ${grade.shortTh}`); }, [grade, titleEdited]);
+  const autoTitle = !grade ? '' : `${link.retakeOf ? 'สอบซ่อม' : 'แบบทดสอบ'}${link.purpose === 'final' ? 'ปลายภาค' : ''} คณิตศาสตร์ ${room ? room.name : grade.shortTh}`;
+  useEffect(() => { if (autoTitle && !titleEdited) setTitle(autoTitle); }, [autoTitle, titleEdited]);
 
   const cfg = useMemo(() => (ref ? configFromSettings(ref.settings) : null), [ref]);
   const names: Names = useMemo(() => ({
@@ -75,7 +97,8 @@ export function ExamBuilderPage({ route }: { route: Route }) {
       const plan = buildPlan(req, pool, cfg, ordering, randomSeed(), names);
       const violations = validatePlan(plan, req, pool, cfg, ordering);
       if (violations.length) throw new Error(`ตรวจชุดข้อสอบไม่ผ่าน: ${violations[0]}`);
-      const id = await repo.createExam(planToCreateInput(plan, req, { title, subjectId: 'MATH' }));
+      const input = planToCreateInput(plan, req, { title, subjectId: 'MATH' });
+      const id = await repo.createExam(link.purpose === 'practice' && !link.classroomId ? input : { ...input, link });
       navigate(`/exams/${id}`, { created: 1 });
     } catch (e) {
       setError((e as Error).message);
@@ -87,6 +110,8 @@ export function ExamBuilderPage({ route }: { route: Route }) {
   const selected = check?.selected ?? 0;
   const counterState = !target ? '' : selected === target ? 'ok' : selected > target ? 'over' : 'under';
   const blocking = check?.errors.filter((e) => e.code !== 'count_mismatch' && e.code !== 'no_rows') ?? [];
+  const problems = linkProblems(link, { gradeId, studentCount: req.studentCount }, room);
+  const unplanned = link.purpose === 'collect' && roomDetail ? unplannedIndicators(rows.map((r) => r.indicatorId), roomDetail.columns) : [];
 
   return (
     <>
@@ -95,11 +120,18 @@ export function ExamBuilderPage({ route }: { route: Route }) {
       <p className="sub">ระบบเลือกข้อที่ใช้น้อยก่อน ผสมข้อยึดค่า เรียงตามตัวชี้วัด ง่าย→ยาก แล้วสลับข้อและตัวเลือกให้แต่ละชุดเอง</p>
       {(error || refError) && <div className="error" role="alert">{error || refError}</div>}
 
+      <section className="card builder-step" data-testid="link-step">
+        <h2><span className="step-no">0</span> ใช้สอบแบบไหน</h2>
+        <ExamLinkFields link={link} onChange={setLink} classrooms={classrooms} exams={exams} gradeShort={gradeShort} />
+      </section>
+
       <section className="card builder-step">
         <h2><span className="step-no">1–2</span> ข้อสอบและจำนวนชุด</h2>
         <div className="tabs" role="group" aria-label="เลือกชั้น">
           {ref?.grades.map((g) => (
-            <button key={g.id} type="button" aria-pressed={gradeId === g.id} onClick={() => changeGrade(g.id)}>{g.shortTh}</button>
+            <button key={g.id} type="button" aria-pressed={gradeId === g.id} disabled={!!room && room.gradeId !== g.id}
+              title={room && room.gradeId !== g.id ? `ห้อง ${room.name} เป็นชั้น ${gradeShort(room.gradeId)}` : undefined}
+              onClick={() => changeGrade(g.id)}>{g.shortTh}</button>
           ))}
         </div>
         <div className="field-grid builder-fields">
@@ -168,15 +200,25 @@ export function ExamBuilderPage({ route }: { route: Route }) {
           </label>
         </div>
         <p className="hint-line">ระบบกำหนดชุดตามเลขที่แบบวนรอบ (เลขที่ 1 ชุด 1, เลขที่ 2 ชุด 2, …) นักเรียนไม่ต้องฝนชุด</p>
+        {room && !link.retakeOf && <p className="hint-line">ชุดของห้อง {room.name} ต้องมีเลขที่ครบทั้งห้อง ({room.studentCount} คน) — เลขที่ที่ไม่ได้สอบนับตาม "ขาดสอบ" ในตั้งค่าห้อง</p>}
       </section>
 
+      {unplanned.length > 0 && (
+        <div className="notice" data-testid="unplanned">
+          ตัวชี้วัด {unplanned.map((i) => ref?.indicatorById.get(i)?.code ?? i).join(', ')} ยังไม่มีช่องในห้อง {room?.name} — คะแนนเก็บไว้แล้ว
+          แต่จะลงสมุดเมื่อ<a href={`#/classes/${room?.id}`}>เพิ่มช่องตัวชี้วัดนี้ในห้อง</a> (เพิ่มเมื่อไรคะแนนก็มา)
+        </div>
+      )}
+      {problems.length > 0 && (
+        <ul className="qa-list" data-testid="link-errors">{problems.map((m, i) => <li key={i} className="qa-error">{m}</li>)}</ul>
+      )}
       {check && check.errors.length > 0 && (
         <ul className="qa-list" data-testid="build-errors">
           {(blocking.length ? blocking : check.errors).map((e, i) => <li key={i} className="qa-error">{e.message}</li>)}
         </ul>
       )}
       <div className="actions">
-        <button className="btn" disabled={!check?.ready || busy} onClick={create}>{busy ? 'กำลังสร้าง…' : 'สร้างข้อสอบ'}</button>
+        <button className="btn" disabled={!check?.ready || busy || problems.length > 0} onClick={create}>{busy ? 'กำลังสร้าง…' : 'สร้างข้อสอบ'}</button>
         <a className="btn ghost" href="#/exams">ยกเลิก</a>
       </div>
     </>

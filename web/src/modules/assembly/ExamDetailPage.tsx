@@ -25,7 +25,10 @@ export function ExamDetailPage({ id, route, canOpenItems }: { id: string; route:
 
   const load = () => repo.getExam(id).then(setExam, (e) => setError((e as Error).message));
   useEffect(() => { load(); }, [id]);   // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => { repo.listClassrooms().then(setRooms, () => setRooms([])); }, []);
+  useEffect(() => {
+    repo.listClassrooms().then(setRooms, () => setRooms([]));
+    repo.listExams('MATH').then(setExams, () => setExams([]));   // ชื่อชุดเดิมของสอบซ่อม + ตัวเลือกสอบซ่อม
+  }, []);
 
   if (error) return <div className="error" role="alert">{error}</div>;
   if (exam === undefined) return <p className="sub">กำลังโหลด…</p>;
@@ -50,7 +53,6 @@ export function ExamDetailPage({ id, route, canOpenItems }: { id: string; route:
   async function startEdit() {
     setLinkMsg(null);
     setEditLink({ classroomId: exam!.classroomId, purpose: exam!.purpose, retakeOf: exam!.retakeOf });
-    repo.listExams('MATH').then(setExams, () => setExams([]));
   }
   async function saveLink() {
     if (!editLink) return;

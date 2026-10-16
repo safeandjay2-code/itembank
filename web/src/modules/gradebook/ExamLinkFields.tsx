@@ -32,7 +32,7 @@ export function ExamLinkFields({ link, onChange, classrooms, exams, selfId, grad
           : (
             <div className="field-grid builder-fields">
               <label>ห้องเรียน
-                <select value={link.classroomId ?? ''} onChange={(e) => onChange({ ...link, classroomId: e.target.value || null, retakeOf: null })}>
+                <select aria-label="ห้องเรียน" value={link.classroomId ?? ''} onChange={(e) => onChange({ ...link, classroomId: e.target.value || null, retakeOf: null })}>
                   <option value="">— เลือกห้อง —</option>
                   {classrooms.map((c) => (
                     <option key={c.id} value={c.id}>{c.name} ({gradeShort(c.gradeId)} · {c.term}/{c.academicYear} · {c.studentCount} คน)</option>
@@ -40,7 +40,7 @@ export function ExamLinkFields({ link, onChange, classrooms, exams, selfId, grad
                 </select>
               </label>
               <label>สอบซ่อม/สอบซ้ำ
-                <select value={link.retakeOf ?? ''} disabled={!link.classroomId}
+                <select aria-label="สอบซ่อม/สอบซ้ำ" value={link.retakeOf ?? ''} disabled={!link.classroomId}
                   onChange={(e) => onChange({ ...link, retakeOf: e.target.value || null })}>
                   <option value="">ไม่ใช่ — เป็นการสอบครั้งแรก</option>
                   {candidates.map((e) => <option key={e.id} value={e.id}>สอบซ่อมของ: {e.title}</option>)}

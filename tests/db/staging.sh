@@ -9,7 +9,8 @@
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 DB=itembank_staging
-LIVE_LAST=0010   # migration ล่าสุดที่ติดตั้งบนระบบจริงแล้ว — แก้เลขนี้ทุกครั้งที่ปล่อยขึ้นระบบจริง
+LIVE_LAST=${LIVE_LAST:-0012}   # migration ล่าสุดที่ติดตั้งบนระบบจริงแล้ว — แก้เลขนี้ทุกครั้งที่ปล่อยขึ้นระบบจริง
+#   (ปล่อย 0011+0012 ขึ้นระบบจริง 22 ต.ค. 2569 · ซ้อมรอบนั้นซ้ำได้ด้วย LIVE_LAST=0010 bash tests/db/staging.sh upgrade)
 PSQL=${PSQL:-"psql -v ON_ERROR_STOP=1 -X -q"}
 dropdb --if-exists $DB
 createdb $DB
@@ -27,6 +28,9 @@ SQL
 $PSQL -d $DB -f supabase/seed/S900_dev_sample_items.sql >/dev/null
 echo "สภาพระบบจริง: $($PSQL -t -A -d $DB -c "select string_agg(version, ',' order by version) from public.app_migrations") · ข้อหุ่น $($PSQL -t -A -d $DB -c "select count(*) from public.items")"
 if [[ "${1:-}" == "upgrade" ]]; then
+  pending=0
+  for f in supabase/migrations/*.sql; do n=$(basename "$f" | cut -c1-4); if [[ "$n" > "$LIVE_LAST" ]]; then pending=1; fi; done
+  if [[ $pending -eq 0 ]]; then echo "ไม่มี migration ใหม่กว่า $LIVE_LAST ที่ต้องซ้อมติดตั้ง ✓"; exit 0; fi
   $PSQL -d $DB -f tests/db/staging_before.sql >/dev/null
   echo "ข้อมูลจำลองการใช้งานจริง: ชุด A เปิดสอบ (ตรวจแล้ว 2 คน) · ชุด B ปิดแล้ว · ชุด C ยังไม่สอบ"
   for f in supabase/migrations/*.sql; do

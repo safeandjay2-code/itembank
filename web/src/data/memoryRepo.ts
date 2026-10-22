@@ -9,7 +9,7 @@ import type {
   BankExport, CognitiveLevel, CoverageCell, DifficultyLevel, ExamCreateInput, ExamDetail, ExamStatus, ExamSummary, Grade,
   ImportReport, Indicator, ItemAnswer, ItemContent, ItemDetail, ItemEvent, ItemFilter, ItemPage, ItemStatus, ItemSummary,
   ItemVersion, PoolItem, Profile, QaReport, SaveItemInput, ScanAnswer, ScanFlag, ScanResponse, ScanSaveInput, ScanSaveResult, Settings, ClosedSummary, RoundStat,
-  ClassroomCreateInput, ClassroomDetail, ClassroomSummary, ClassroomUpdateInput, GbColumn, GbColumnKind, GbSettings, ExamLink,
+  ClassroomCloseSummary, ClassroomCreateInput, ClassroomDetail, ClassroomSummary, ClassroomUpdateInput, GbColumn, GbColumnKind, GbSettings, ExamLink,
   GbAttempt, GbOverrideReason, GbRetakeChoice, GbSheet,
 } from '../core/types';
 import { GRADEBOOK_DEFAULT_SETTINGS, effectiveSettings, gradebookDefaults } from '../modules/gradebook/plan';
@@ -54,6 +54,7 @@ interface MemItem {
 interface MemClassroom {
   id: string; subjectId: string; gradeId: string; academicYear: number; term: number; name: string; studentCount: number;
   settings: GbSettings; status: 'open' | 'closed'; createdAt: string; closedAt: string | null; columns: GbColumn[];
+  closedSummary?: ClassroomCloseSummary | null;
 }
 
 interface MemRun extends CalibrationRun { ranAt: string }
@@ -806,7 +807,8 @@ export class MemoryRepo implements Repo {
     const c = this.classrooms.find((x) => x.id === id);
     if (!c) return null;
     const cols = [...c.columns].sort((a, b) => (a.kind === 'final' ? 1 : 0) - (b.kind === 'final' ? 1 : 0) || a.sort - b.sort || a.id - b.id);
-    return { ...this.classroomSummary(c), subjectId: c.subjectId, settings: clone(c.settings), columns: clone(cols) };
+    return { ...this.classroomSummary(c), subjectId: c.subjectId, settings: clone(c.settings), columns: clone(cols),
+      closedSummary: c.closedSummary ? clone(c.closedSummary) : null };
   }
   async createClassroom(input: ClassroomCreateInput): Promise<string> {
     this.requireSignedIn();
@@ -992,5 +994,41 @@ export class MemoryRepo implements Repo {
     if (chosenExamId !== rootExamId && (!chosen || chosen.retakeOf !== rootExamId)) throw new Error('ชุดที่เลือกไม่ใช่สอบซ่อมของชุดนี้');
     if (!chosen || !this.attemptsOf(chosen).some((a) => a.seatNo === seatNo)) throw new Error(`เลขที่ ${seatNo} ไม่มีผลสอบในชุดที่เลือก`);
     this.retakeChoices.push({ rootExamId, seatNo, chosenExamId });
+  }
+
+  // ---------- One Stop เฟส 5: ปิดเทอม (เลียนแบบ gb_classroom_close ใน 0011) ----------
+  async closeClassroom(classroomId: string): Promise<ClassroomCloseSummary> {
+    const c = this.requireClassroom(classroomId);
+    let examsClosed = 0;
+    for (const e of [...this.exams].filter((x) => x.classroomId === c.id).sort((a, b) => a.createdAt.localeCompare(b.createdAt))) {
+      if ((e.status === 'draft' || e.status === 'open') && (this.scans.get(e.id)?.size ?? 0) > 0) { await this.finalize(e, 'closed'); examsClosed++; }
+    }
+    const sheet = await this.getGradebook(c.id);
+    const r2 = (x: number) => Math.round(x * 100) / 100;
+    const stat = (vals: number[]) => (vals.length ? { mean: r2(vals.reduce((a, b) => a + b, 0) / vals.length), min: Math.min(...vals), max: Math.max(...vals) }
+      : { mean: null, min: null, max: null });
+    const totals = sheet.rows.map((r) => r.total).filter((v): v is number => v !== null);
+    const exams = this.exams.filter((e) => e.classroomId === c.id);
+    const colIds = new Set(c.columns.map((x) => x.id));
+    const overridesDeleted = this.overrides.filter((o) => colIds.has(o.columnId)).length;
+    const attemptsDeleted = exams.reduce((n, e) => n + this.attemptsOf(e).length, 0);
+    const summary: ClassroomCloseSummary = {
+      seatCount: sheet.seatCount,
+      columns: sheet.columns.map((col, k) => ({ kind: col.kind, indicatorId: col.indicatorId, label: col.label, maxScore: col.maxScore,
+        collected: col.collected, ...stat(sheet.rows.map((r) => r.cells[k].value).filter((v): v is number => v !== null)) })),
+      totalMean: totals.length ? r2(totals.reduce((a, b) => a + b, 0) / totals.length) : null,
+      examsClosed, attemptsDeleted, overridesDeleted, closedAt: now(),
+    };
+    this.retakeChoices = this.retakeChoices.filter((r) => !exams.some((e) => e.id === r.rootExamId));
+    this.overrides = this.overrides.filter((o) => !colIds.has(o.columnId));
+    for (const e of exams) {
+      e.gbAttempts = [];
+      // ชุดที่ยังไม่เคยสอบ: ยกเลิกผูกห้อง (กลับเป็นชุดฝึก ใช้กติกาเดิม)
+      if (e.status === 'draft' || e.status === 'open') Object.assign(e, { classroomId: null, purpose: 'practice', retakeOf: null });
+    }
+    c.status = 'closed';
+    c.closedAt = summary.closedAt;
+    c.closedSummary = summary;
+    return clone(summary);
   }
 }

@@ -92,7 +92,10 @@ export function GradebookPage({ id, route }: { id: string; route: Route }) {
             {!closed && <a href={`#/classes/${c.id}`}>เปลี่ยนวิธีคิด</a>}
           </p>
         </div>
-        {!closed && <a className="btn ghost" href={`#/exams/new?classroom=${encodeURIComponent(c.id)}`}>+ สร้างชุดข้อสอบ</a>}
+        <div className="actions wrap" style={{ marginTop: 0 }}>
+          <a className="btn" href={`#/classes/${c.id}/close`} data-testid="book-export">{closed ? 'สรุปปิดเทอม' : 'ส่งออกชีท / ปิดเทอม'}</a>
+          {!closed && <a className="btn ghost" href={`#/exams/new?classroom=${encodeURIComponent(c.id)}`}>+ สร้างชุดข้อสอบ</a>}
+        </div>
       </div>
 
       {status && <div className={status.kind === 'ok' ? 'notice' : 'error box'} role={status.kind === 'error' ? 'alert' : 'status'} data-testid="book-status">{status.text}</div>}

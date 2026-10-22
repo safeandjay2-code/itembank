@@ -403,9 +403,26 @@ export interface GbColumn {
   sort: number;
 }
 
+/** ผลสรุประดับห้องตอนปิดเทอม (gb_classrooms.closed_summary) — ไม่มีข้อมูลรายเลขที่ */
+export interface ClassroomCloseSummary {
+  seatCount: number;
+  columns: Array<{
+    kind: GbColumnKind; indicatorId: string | null; label: string | null; maxScore: number | null; collected: boolean;
+    mean: number | null; min: number | null; max: number | null;
+  }>;
+  totalMean: number | null;
+  /** ชุดที่ยังเปิดอยู่และถูกปิดพร้อมเทอม */
+  examsClosed: number;
+  attemptsDeleted: number;
+  overridesDeleted: number;
+  closedAt: string;
+}
+
 export interface ClassroomDetail extends ClassroomSummary {
   subjectId: string;
   settings: GbSettings;
+  /** มีค่าเมื่อปิดเทอมแล้ว */
+  closedSummary: ClassroomCloseSummary | null;
   /** เรียงตามแผนการสอน (sort) · ช่องปลายภาคอยู่ท้ายเสมอ */
   columns: GbColumn[];
 }

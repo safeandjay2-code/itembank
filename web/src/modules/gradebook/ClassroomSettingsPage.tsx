@@ -71,7 +71,10 @@ export function ClassroomSettingsPage({ id, route }: { id: string; route: Route 
             <span className={`chip ${closed ? 'ex-closed' : 'ex-open'}`}>{closed ? 'ปิดเทอมแล้ว' : 'เปิดอยู่'}</span>
           </div>
         </div>
-        <a className="btn" href={`#/classes/${room.id}/book`} data-testid="open-book">เปิดสมุดคะแนน</a>
+        <div className="actions wrap" style={{ marginTop: 0 }}>
+          <a className="btn" href={`#/classes/${room.id}/book`} data-testid="open-book">เปิดสมุดคะแนน</a>
+          <a className="btn ghost" href={`#/classes/${room.id}/close`} data-testid="open-term">{closed ? 'สรุปปิดเทอม' : 'ส่งออกชีท / ปิดเทอม'}</a>
+        </div>
       </div>
       {status && <div className={status.kind === 'ok' ? 'notice' : 'error box'} role={status.kind === 'error' ? 'alert' : 'status'} data-testid="class-status">{status.text}</div>}
       {closed && <div className="banner">ห้องนี้ปิดเทอมแล้ว — ดูได้อย่างเดียว แก้ไขไม่ได้</div>}

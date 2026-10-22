@@ -3,7 +3,7 @@
 import type {
   BankExport, CognitiveLevel, CoverageCell, DifficultyLevel, ExamCreateInput, ExamDetail, ExamSummary, Grade, ImportReport,
   Indicator, ItemDetail, ItemFilter, ItemPage, ItemStatus, PoolItem, Profile, SaveItemInput, ScanAnswer, ScanResponse, ScanSaveInput,
-  ScanSaveResult, Settings, ClosedSummary, ClassroomCreateInput, ClassroomDetail, ClassroomSummary, ClassroomUpdateInput, GbColumnKind, ExamLink,
+  ScanSaveResult, Settings, ClosedSummary, ClassroomCloseSummary, ClassroomCreateInput, ClassroomDetail, ClassroomSummary, ClassroomUpdateInput, GbColumnKind, ExamLink,
   GbOverrideReason, GbSheet,
 } from '../core/types';
 import type { BankHealth, CalibrationRun, ItemCalibrationInfo } from '../modules/calibration/calibrate';
@@ -105,4 +105,9 @@ export interface Repo {
   setOverride(columnId: number, seatNo: number, score: number | null, reason: GbOverrideReason): Promise<void>;
   /** ครูเลือกครั้งที่นับของสอบซ่อม (ใช้เมื่อวิธีนับ = ครูเลือกเอง) · chosenExamId = null คือยกเลิก */
   chooseRetake(rootExamId: string, seatNo: number, chosenExamId: string | null): Promise<void>;
+
+  // ---------- One Stop เฟส 5: ปิดเทอม (gb_classroom_close) ----------
+  /** ปิดเทอม: ปิดชุดที่ยังเปิด (สถิติเข้าคลัง) → ลบคะแนนรายเลขที่/คะแนนที่ปรับ/การเลือกสอบซ่อมทั้งหมดของห้อง
+   *  เหลือค่ารวมระดับห้อง · ชุดที่ยังไม่มีใครสอบกลับเป็นชุดฝึก (ย้อนกลับไม่ได้) */
+  closeClassroom(classroomId: string): Promise<ClassroomCloseSummary>;
 }

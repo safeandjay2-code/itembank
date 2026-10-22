@@ -13,11 +13,15 @@ export const S = {
   bad: 6,      // ข้อความสีแดง (ไม่ผ่าน/ต้องแก้)
   bold: 7,
   pct: 8,      // ทศนิยม 1 ตำแหน่ง (ร้อยละ)
+  boxNum: 9,   // ตัวเลขกึ่งกลาง มีเส้นขอบ (ชีทสมุดคะแนน)
+  boxText: 10, // ข้อความชิดซ้าย มีเส้นขอบ
+  boxSum: 11,  // ตัวเลขกึ่งกลาง ตัวหนา พื้นเทา มีเส้นขอบ (คอลัมน์รวม)
 } as const;
 export type Style = (typeof S)[keyof typeof S];
 
 export type CellValue = string | number | null | undefined;
-export interface Cell { v: CellValue; s?: Style }
+/** f = สูตร (ไม่ต้องขึ้นต้นด้วย =) · v = ค่าที่คำนวณไว้ล่วงหน้า (โปรแกรมคำนวณใหม่ตอนเปิดไฟล์อยู่แล้ว) */
+export interface Cell { v: CellValue; s?: Style; f?: string }
 export type Row = Array<CellValue | Cell>;
 
 export interface Sheet {
@@ -29,6 +33,8 @@ export interface Sheet {
   freezeRows?: number;
   /** ตรึงคอลัมน์ซ้ายกี่คอลัมน์ */
   freezeCols?: number;
+  /** ผสานเซลล์ เช่น 'A1:A3' */
+  merges?: string[];
 }
 
 const esc = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
@@ -50,6 +56,10 @@ export function sheetName(name: string): string {
 
 function cellXml(ref: string, c: Cell): string {
   const st = c.s ? ` s="${c.s}"` : '';
+  if (c.f) {
+    const v = typeof c.v === 'number' && Number.isFinite(c.v) ? `<v>${c.v}</v>` : '';
+    return `<c r="${ref}"${st}><f>${esc(c.f)}</f>${v}</c>`;
+  }
   if (c.v === null || c.v === undefined || c.v === '') return c.s ? `<c r="${ref}"${st}/>` : '';
   if (typeof c.v === 'number') return Number.isFinite(c.v) ? `<c r="${ref}"${st}><v>${c.v}</v></c>` : '';
   return `<c r="${ref}"${st} t="inlineStr"><is><t xml:space="preserve">${esc(c.v)}</t></is></c>`;
@@ -68,6 +78,7 @@ function sheetXml(sh: Sheet): string {
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">`
     + `<sheetViews><sheetView workbookViewId="0">${pane}</sheetView></sheetViews><sheetFormatPr defaultRowHeight="20"/>${cols}<sheetData>${rows}</sheetData>`
+    + (sh.merges?.length ? `<mergeCells count="${sh.merges.length}">${sh.merges.map((m) => `<mergeCell ref="${m}"/>`).join('')}</mergeCells>` : '')
     + `<pageMargins left="0.5" right="0.5" top="0.6" bottom="0.6" header="0.3" footer="0.3"/><pageSetup paperSize="9" orientation="landscape"/></worksheet>`;
 }
 
@@ -87,7 +98,7 @@ const STYLES = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border>
 <border><left style="thin"><color rgb="FFB0B7C3"/></left><right style="thin"><color rgb="FFB0B7C3"/></right><top style="thin"><color rgb="FFB0B7C3"/></top><bottom style="thin"><color rgb="FFB0B7C3"/></bottom><diagonal/></border></borders>
 <cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
-<cellXfs count="9">
+<cellXfs count="12">
 <xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
 <xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>
 <xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>
@@ -97,6 +108,9 @@ const STYLES = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <xf numFmtId="0" fontId="4" fillId="0" borderId="0" xfId="0" applyFont="1"/>
 <xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/>
 <xf numFmtId="166" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>
+<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment vertical="center"/></xf>
+<xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
 </cellXfs>
 <cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>
 </styleSheet>`;
@@ -120,7 +134,7 @@ export async function buildXlsx(sheets: Sheet[]): Promise<Uint8Array> {
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`);
   zip.file('xl/workbook.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><bookViews><workbookView/></bookViews><sheets>`
-    + names.map((n, i) => `<sheet name="${esc(n)}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`).join('') + `</sheets></workbook>`);
+    + names.map((n, i) => `<sheet name="${esc(n)}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`).join('') + `</sheets><calcPr calcId="0" fullCalcOnLoad="1"/></workbook>`);
   zip.file('xl/_rels/workbook.xml.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">`
     + sheets.map((_, i) => `<Relationship Id="rId${i + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i + 1}.xml"/>`).join('')

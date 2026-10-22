@@ -3,7 +3,7 @@ import type { Repo, AuthState } from './repo';
 import type {
   BankExport, CognitiveLevel, CoverageCell, DifficultyLevel, ExamCreateInput, ExamDetail, ExamSummary, Grade, ImportReport,
   Indicator, ItemDetail, ItemFilter, ItemPage, ItemStatus, ItemSummary, ItemVersion, PoolItem, Profile, SaveItemInput, ScanAnswer, ScanResponse,
-  ScanSaveInput, ScanSaveResult, Settings, ClosedSummary, ClassroomCreateInput, ClassroomDetail, ClassroomSummary, ClassroomUpdateInput,
+  ScanSaveInput, ScanSaveResult, Settings, ClosedSummary, ClassroomCloseSummary, ClassroomCreateInput, ClassroomDetail, ClassroomSummary, ClassroomUpdateInput,
   GbColumn, GbColumnKind, ExamLink, GbOverrideReason, GbSheet,
 } from '../core/types';
 import { toDbPayload } from '../modules/assembly/payload';
@@ -360,9 +360,24 @@ export class SupabaseRepo implements Repo {
   async chooseRetake(rootExamId: string, seatNo: number, chosenExamId: string | null): Promise<void> {
     await this.rpc('gb_retake_choose', { p_root: rootExamId, p_seat: seatNo, p_chosen: chosenExamId });
   }
+
+  async closeClassroom(classroomId: string): Promise<ClassroomCloseSummary> {
+    return toClassroomCloseSummary(await this.rpc('gb_classroom_close', { p_classroom: classroomId }));
+  }
 }
 
 const num = (v: any): number | null => (v === null || v === undefined ? null : Number(v));
+
+/** แปลงผลปิดเทอม (gb_classroom_close / gb_classrooms.closed_summary) */
+export function toClassroomCloseSummary(j: any): ClassroomCloseSummary {
+  return {
+    seatCount: Number(j.seat_count ?? 0),
+    columns: (j.columns ?? []).map((c: any) => ({ kind: c.kind, indicatorId: c.indicator_id ?? null, label: c.label ?? null,
+      maxScore: num(c.max_score), collected: Boolean(c.collected), mean: num(c.mean), min: num(c.min), max: num(c.max) })),
+    totalMean: num(j.total_mean), examsClosed: Number(j.exams_closed ?? 0), attemptsDeleted: Number(j.attempts_deleted ?? 0),
+    overridesDeleted: Number(j.overrides_deleted ?? 0), closedAt: j.closed_at,
+  };
+}
 
 /** แปลงผล gb_sheet (snake_case) เป็นชนิดของหน้าเว็บ */
 export function toGbSheet(r: any, attempts: any[], choices: any[]): GbSheet {
@@ -472,5 +487,6 @@ export function toClassroomDetail(r: any, columns: GbColumn[], examCount: number
   return {
     ...toClassroomSummary({ ...r, column_count: columns.filter((c) => c.kind !== 'final').length, exam_count: examCount }),
     subjectId: r.subject_id, settings: r.settings ?? {}, columns: sortColumns(columns),
+    closedSummary: r.closed_summary ? toClassroomCloseSummary(r.closed_summary) : null,
   };
 }

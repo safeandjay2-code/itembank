@@ -4,7 +4,7 @@ import type {
   BankExport, CognitiveLevel, CoverageCell, DifficultyLevel, ExamCreateInput, ExamDetail, ExamSummary, Grade, ImportReport,
   Indicator, ItemDetail, ItemFilter, ItemPage, ItemStatus, ItemSummary, ItemVersion, PoolItem, Profile, SaveItemInput, ScanAnswer, ScanResponse,
   ScanSaveInput, ScanSaveResult, Settings, ClosedSummary, ClassroomCreateInput, ClassroomDetail, ClassroomSummary, ClassroomUpdateInput,
-  GbColumn, GbColumnKind, ExamLink,
+  GbColumn, GbColumnKind, ExamLink, GbOverrideReason, GbSheet,
 } from '../core/types';
 import { toDbPayload } from '../modules/assembly/payload';
 import type { BankHealth, CalibrationRun, ItemCalibrationInfo } from '../modules/calibration/calibrate';
@@ -338,6 +338,56 @@ export class SupabaseRepo implements Repo {
   async deleteColumn(columnId: number): Promise<void> {
     await this.rpc('gb_column_delete', { p_column: columnId });
   }
+
+  // ---------- One Stop เฟส 4: สมุดคะแนน ----------
+  async getGradebook(classroomId: string): Promise<GbSheet> {
+    const raw = await this.rpc<any>('gb_sheet', { p_classroom: classroomId });
+    const ids: string[] = (raw.exams ?? []).map((e: any) => e.id);
+    // คะแนนจริงรายชุด + ครั้งที่ครูเลือก (อ่านตรงผ่าน RLS เฉพาะเจ้าของ) — ใช้แสดงรายละเอียดรายคน
+    const [att, ch] = ids.length
+      ? await Promise.all([
+        this.sb.from('gb_attempts').select('exam_id,seat_no,indicator_id,correct,total').in('exam_id', ids),
+        this.sb.from('gb_retake_choices').select('root_exam_id,seat_no,chosen_exam_id').in('root_exam_id', ids),
+      ])
+      : [{ data: [], error: null }, { data: [], error: null }];
+    return toGbSheet(raw, must(att as any) as any[], must(ch as any) as any[]);
+  }
+
+  async setOverride(columnId: number, seatNo: number, score: number | null, reason: GbOverrideReason): Promise<void> {
+    await this.rpc('gb_override_set', { p_column: columnId, p_seat: seatNo, p_score: score, p_reason: reason });
+  }
+
+  async chooseRetake(rootExamId: string, seatNo: number, chosenExamId: string | null): Promise<void> {
+    await this.rpc('gb_retake_choose', { p_root: rootExamId, p_seat: seatNo, p_chosen: chosenExamId });
+  }
+}
+
+const num = (v: any): number | null => (v === null || v === undefined ? null : Number(v));
+
+/** แปลงผล gb_sheet (snake_case) เป็นชนิดของหน้าเว็บ */
+export function toGbSheet(r: any, attempts: any[], choices: any[]): GbSheet {
+  const c = r.classroom;
+  return {
+    classroom: { id: c.id, name: c.name, subjectId: c.subject_id, gradeId: c.grade_id, academicYear: c.academic_year, term: c.term,
+      studentCount: c.student_count, status: c.status, settings: { ...c.settings, show_other_columns: Boolean(c.settings.show_other_columns) } },
+    seatCount: r.seat_count,
+    columns: (r.columns ?? []).map((x: any) => ({
+      id: Number(x.id), kind: x.kind, indicatorId: x.indicator_id, code: x.code, standardCode: x.standard_code, indicatorCode: x.indicator_code || null,
+      text: x.text, label: x.label, maxScore: num(x.max_score), sort: x.sort, collected: Boolean(x.collected),
+      groups: (x.groups ?? []).map((g: any) => ({ root: g.root, itemTotal: Number(g.item_total), exams: [...(g.exams ?? [])].sort() }))
+        .sort((a: any, b: any) => a.root.localeCompare(b.root)),
+    })),
+    rows: (r.rows ?? []).map((row: any) => ({
+      seatNo: row.seat_no, totalCollect: num(row.total_collect), totalFinal: num(row.total_final), total: num(row.total),
+      cells: (row.cells ?? []).map((x: any) => ({ columnId: Number(x.column_id), rawCorrect: num(x.raw_correct), rawTotal: num(x.raw_total),
+        real: num(x.real), adjusted: num(x.adjusted), reason: x.reason ?? null, value: num(x.value), missing: [...(x.missing ?? [])].sort() })),
+    })),
+    totals: { collectMax: num(r.totals?.collect_max), finalMax: num(r.totals?.final_max), max: num(r.totals?.max), unsetColumns: Number(r.totals?.unset_columns ?? 0) },
+    unplannedIndicators: r.unplanned_indicators ?? [],
+    exams: (r.exams ?? []).map((e: any) => ({ id: e.id, title: e.title, purpose: e.purpose, retakeOf: e.retake_of, status: e.status, createdAt: e.created_at })),
+    attempts: attempts.map((a) => ({ examId: a.exam_id, seatNo: a.seat_no, indicatorId: a.indicator_id, correct: a.correct, total: a.total })),
+    retakeChoices: choices.map((x) => ({ rootExamId: x.root_exam_id, seatNo: x.seat_no, chosenExamId: x.chosen_exam_id })),
+  };
 }
 
 function toExamSummary(e: any): ExamSummary {

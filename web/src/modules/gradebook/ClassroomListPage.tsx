@@ -4,6 +4,7 @@ import { repo } from '../../data';
 import type { ClassroomSummary } from '../../core/types';
 import { href } from '../../ui/router';
 import { useRefData } from '../core/useRefData';
+import './book.css';
 
 export function ClassroomListPage() {
   const { data: ref } = useRefData();
@@ -42,6 +43,7 @@ export function ClassroomListPage() {
                 <span>ชุดข้อสอบ {c.examCount} ชุด</span>
               </div>
             </a>
+            <a className="row-link" href={href(`/classes/${c.id}/book`)} data-testid="class-book-link">สมุดคะแนน {c.name} →</a>
           </li>
         ))}
       </ul>

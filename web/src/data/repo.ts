@@ -4,6 +4,7 @@ import type {
   BankExport, CognitiveLevel, CoverageCell, DifficultyLevel, ExamCreateInput, ExamDetail, ExamSummary, Grade, ImportReport,
   Indicator, ItemDetail, ItemFilter, ItemPage, ItemStatus, PoolItem, Profile, SaveItemInput, ScanAnswer, ScanResponse, ScanSaveInput,
   ScanSaveResult, Settings, ClosedSummary, ClassroomCreateInput, ClassroomDetail, ClassroomSummary, ClassroomUpdateInput, GbColumnKind, ExamLink,
+  GbOverrideReason, GbSheet,
 } from '../core/types';
 import type { BankHealth, CalibrationRun, ItemCalibrationInfo } from '../modules/calibration/calibrate';
 
@@ -96,4 +97,12 @@ export interface Repo {
   reorderColumns(classroomId: string, columnIds: number[]): Promise<void>;
   /** ลบช่อง (ปลายภาคลบไม่ได้) — คะแนนจริงจากการสอบไม่หาย แต่คะแนนที่ปรับของช่องนี้หาย */
   deleteColumn(columnId: number): Promise<void>;
+
+  // ---------- One Stop เฟส 4: สมุดคะแนน (gb_sheet / gb_override_set / gb_retake_choose) ----------
+  /** สมุดคะแนนทั้งห้อง: คะแนนจริง/ปรับ/ลงชีท รายเลขที่ × ช่อง + คะแนนรายชุด (ห้องที่ปิดเทอมแล้วดูได้ แต่ไม่มีข้อมูลรายเลขที่) */
+  getGradebook(classroomId: string): Promise<GbSheet>;
+  /** ปรับคะแนน (ปรับให้ผ่าน / แก้เอง) — คะแนนจริงยังเก็บอยู่ · score = null คือยกเลิกการปรับ */
+  setOverride(columnId: number, seatNo: number, score: number | null, reason: GbOverrideReason): Promise<void>;
+  /** ครูเลือกครั้งที่นับของสอบซ่อม (ใช้เมื่อวิธีนับ = ครูเลือกเอง) · chosenExamId = null คือยกเลิก */
+  chooseRetake(rootExamId: string, seatNo: number, chosenExamId: string | null): Promise<void>;
 }

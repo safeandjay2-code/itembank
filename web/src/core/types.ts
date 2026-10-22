@@ -428,3 +428,84 @@ export interface ClassroomUpdateInput {
   /** รวมกับของเดิม · ค่า null = กลับไปใช้ค่าเริ่มต้นของระบบ */
   settings?: { [K in keyof GbSettings]?: GbSettings[K] | null };
 }
+
+// ---------- สมุดคะแนนทั้งห้อง (gb_sheet — One Stop เฟส 4) ----------
+
+export type GbOverrideReason = 'pass' | 'manual';
+
+/** คะแนนจริงของ 1 เลขที่ × 1 ตัวชี้วัด × 1 ชุด (ตาราง gb_attempts) */
+export interface GbAttempt { examId: string; seatNo: number; indicatorId: string; correct: number; total: number }
+export interface GbRetakeChoice { rootExamId: string; seatNo: number; chosenExamId: string }
+
+export interface GbSheetGroup {
+  /** ชุดแรกของกลุ่ม (ชุดเดิม + สอบซ่อมของมัน) */
+  root: string;
+  /** จำนวนข้อของเป้าหมายนี้ในกลุ่ม (ชุดที่มากที่สุด) */
+  itemTotal: number;
+  /** ชุดในกลุ่มที่มีผลสอบแล้ว */
+  exams: string[];
+}
+
+export interface GbSheetColumn {
+  id: number;
+  kind: GbColumnKind;
+  indicatorId: string | null;
+  /** รหัสเต็ม 'ค 1.1 ป.4/2' · standardCode = แถว 1 ของชีท 'ค 1.1' · indicatorCode = แถว 2 'ป.4/2' */
+  code: string | null;
+  standardCode: string | null;
+  indicatorCode: string | null;
+  text: string | null;
+  label: string | null;
+  maxScore: number | null;
+  sort: number;
+  /** มีผลสอบลงช่องนี้แล้วอย่างน้อย 1 กลุ่ม */
+  collected: boolean;
+  groups: GbSheetGroup[];
+}
+
+export interface GbSheetCell {
+  columnId: number;
+  /** คะแนนดิบสะสม (ถูก/เต็ม) หลังเลือกครั้งที่นับของสอบซ่อม — null = ยังไม่มีผล */
+  rawCorrect: number | null;
+  rawTotal: number | null;
+  /** คะแนนจริงที่แปลงตามคะแนนเต็ม (ยังไม่ปัด) — null = ยังไม่มีผล/ยังไม่ตั้งคะแนนเต็ม */
+  real: number | null;
+  /** คะแนนที่ครูปรับ (null = ไม่ได้ปรับ) */
+  adjusted: number | null;
+  reason: GbOverrideReason | null;
+  /** คะแนนที่ลงชีท = ปรับ (ถ้ามี) ไม่งั้นจริง ปัดตามการตั้งค่า */
+  value: number | null;
+  /** กลุ่มการสอบที่เลขที่นี้ขาดสอบ (root id) */
+  missing: string[];
+}
+
+export interface GbSheetRow {
+  seatNo: number;
+  cells: GbSheetCell[];
+  totalCollect: number | null;
+  totalFinal: number | null;
+  total: number | null;
+}
+
+export interface GbSheetExam {
+  id: string; title: string; purpose: ExamLink['purpose']; retakeOf: string | null; status: ExamStatus; createdAt: string;
+}
+
+export interface GbSheet {
+  classroom: {
+    id: string; name: string; subjectId: string; gradeId: string; academicYear: number; term: number; studentCount: number;
+    status: 'open' | 'closed'; settings: Required<GbSettings>;
+  };
+  seatCount: number;
+  /** เรียงตามแผนการสอน · ปลายภาคท้ายสุด */
+  columns: GbSheetColumn[];
+  rows: GbSheetRow[];
+  totals: { collectMax: number | null; finalMax: number | null; max: number | null; unsetColumns: number };
+  /** ตัวชี้วัดที่มีคะแนนจากการสอบแต่ห้องยังไม่มีช่อง */
+  unplannedIndicators: string[];
+  /** ทุกชุดของห้อง (ทุกประเภท) เรียงตามวันที่สร้าง */
+  exams: GbSheetExam[];
+  /** คะแนนจริงรายชุด (ใช้แสดงรายละเอียดรายคน/เลือกครั้งสอบซ่อม) */
+  attempts: GbAttempt[];
+  retakeChoices: GbRetakeChoice[];
+}

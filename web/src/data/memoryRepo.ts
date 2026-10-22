@@ -10,8 +10,10 @@ import type {
   ImportReport, Indicator, ItemAnswer, ItemContent, ItemDetail, ItemEvent, ItemFilter, ItemPage, ItemStatus, ItemSummary,
   ItemVersion, PoolItem, Profile, QaReport, SaveItemInput, ScanAnswer, ScanFlag, ScanResponse, ScanSaveInput, ScanSaveResult, Settings, ClosedSummary, RoundStat,
   ClassroomCreateInput, ClassroomDetail, ClassroomSummary, ClassroomUpdateInput, GbColumn, GbColumnKind, GbSettings, ExamLink,
+  GbAttempt, GbOverrideReason, GbRetakeChoice, GbSheet,
 } from '../core/types';
-import { GRADEBOOK_DEFAULT_SETTINGS } from '../modules/gradebook/plan';
+import { GRADEBOOK_DEFAULT_SETTINGS, effectiveSettings, gradebookDefaults } from '../modules/gradebook/plan';
+import { computeSheet } from '../modules/gradebook/sheet';
 import { analysisConfigFromSettings, analyze } from '../modules/analysis/analyze';
 import { answersEqual, detectWrongSet, scanConfigFromSettings, score } from '../modules/scan/grade';
 import { ASSEMBLABLE, classifyEdit, statusAfterSave, statusChangeBlocked } from '../modules/bank/rules';
@@ -63,8 +65,8 @@ interface MemExam {
   sets: ExamCreateInput['sets'];
   openedAt: string | null; expiresAt: string | null; closedAt: string | null;
   closedSummary: ClosedSummary | null; roundStats: RoundStat[];
-  /** One Stop: ห้อง/ประเภทการสอบ/สอบซ่อม · gbSeats = เลขที่ที่มีคะแนนในสมุดหลังปิดชุด (คำตอบถูกลบแต่คะแนนอยู่จนปิดเทอม) */
-  classroomId: string | null; purpose: ExamLink['purpose']; retakeOf: string | null; gbSeats: number[];
+  /** One Stop: ห้อง/ประเภทการสอบ/สอบซ่อม · gbAttempts = คะแนนจริงในสมุดหลังปิดชุด (คำตอบถูกลบแต่คะแนนอยู่จนปิดเทอม — เหมือน gb_attempts) */
+  classroomId: string | null; purpose: ExamLink['purpose']; retakeOf: string | null; gbAttempts: GbAttempt[];
 }
 
 const clone = <T,>(v: T): T => structuredClone(v);
@@ -405,13 +407,13 @@ export class MemoryRepo implements Repo {
     const id = `exam-${this.examSeq}`;
     this.exams.unshift({
       id, title: input.title.trim(), subjectId: input.subjectId, gradeId: input.gradeId, setCount: input.setCount,
-      studentCount: input.studentCount, status: 'draft', createdAt: now(),
+      studentCount: input.studentCount, status: 'draft', createdAt: this.examStamp(),
       durationMin: Math.min(300, Math.max(1, Math.ceil(input.items.length * Number(this.settingsMap()['print.minutes_per_item'] ?? 2)))), rows: clone(input.rows), build: clone(input.build),
       items: input.items.map((x) => { const p = byId.get(x.itemId)!;
         return { itemId: x.itemId, version: x.version, basePosition: x.basePosition, isAnchor: p.n >= cfg.anchorMinN, indicatorId: p.indicatorId, difficulty: p.difficulty }; }),
       sets: clone(input.sets).sort((a, b) => a.setNo - b.setNo),
       openedAt: null, expiresAt: null, closedAt: null, closedSummary: null, roundStats: [],
-      ...this.normalizedLink(input.link), gbSeats: [],
+      ...this.normalizedLink(input.link), gbAttempts: [],
     });
     for (const x of input.items) {
       const it = this.items.find((i) => i.id === x.itemId)!;
@@ -462,6 +464,7 @@ export class MemoryRepo implements Repo {
     if (e.status === 'open' || (this.scans.get(id)?.size ?? 0) > 0) throw new Error('ลบได้เฉพาะชุดที่ยังไม่เริ่มสอบหรือปิดชุดแล้ว — ชุดนี้กำลังสอบ ให้ปิดชุดก่อน');
     this.exams = this.exams.filter((x) => x.id !== id);
     for (const x of this.exams) if (x.retakeOf === id) x.retakeOf = null;   // on delete set null
+    this.retakeChoices = this.retakeChoices.filter((r) => r.rootExamId !== id && r.chosenExamId !== id);   // on delete cascade
   }
 
   async updateExamMeta(id: string, title: string, durationMin: number): Promise<void> {
@@ -562,7 +565,7 @@ export class MemoryRepo implements Repo {
       indicators: a.indicators.map((x) => ({ indicatorId: x.indicatorId, itemCount: x.itemCount, passCount: x.passCount, meanRatio: x.meanRatio })),
       itemsRecorded: stats.length, responsesDeleted: rows.size, finalizedAs: as, finalizedAt: now(),
     };
-    e.gbSeats = this.scoredSeats(e);   // คะแนนในสมุดอยู่ต่อหลังปิดชุด (เหมือน 0011)
+    e.gbAttempts = this.attemptsOf(e);   // คะแนนในสมุดอยู่ต่อหลังปิดชุด (เหมือน 0011)
     this.scans.delete(e.id);
     e.status = as;
     e.closedAt = now();
@@ -840,16 +843,43 @@ export class MemoryRepo implements Repo {
     if (c.status === 'open' && this.exams.some((e) => e.classroomId === id && this.scoredSeats(e).length > 0)) {
       throw new Error('ห้องนี้มีคะแนนจากการสอบแล้ว — ให้ปิดเทอมก่อนจึงลบได้');
     }
-    for (const e of this.exams) if (e.classroomId === id) Object.assign(e, { classroomId: null, purpose: 'practice', retakeOf: null });
+    for (const e of this.exams) if (e.classroomId === id) {
+      Object.assign(e, { classroomId: null, purpose: 'practice', retakeOf: null, gbAttempts: [] });
+      this.retakeChoices = this.retakeChoices.filter((r) => r.rootExamId !== e.id);
+    }
+    const colIds = new Set(c.columns.map((x) => x.id));
+    this.overrides = this.overrides.filter((o) => !colIds.has(o.columnId));
     this.classrooms = this.classrooms.filter((x) => x.id !== id);
   }
 
   // ---------- One Stop เฟส 3: ผูกชุดข้อสอบกับห้อง (เลียนแบบ gb_exam_link + 0012) ----------
   /** เลขที่ที่มีคะแนนในสมุดจากชุดนี้ (เฉพาะชุดผูกห้องที่เป็นเก็บคะแนน/ปลายภาค) */
   private scoredSeats(e: MemExam): number[] {
+    return [...new Set(this.attemptsOf(e).map((a) => a.seatNo))].sort((a, b) => a - b);
+  }
+  /** คะแนนจริงรายเลขที่ × ตัวชี้วัด ของชุด (เลียนแบบ gb_refresh_attempts) — ชุดที่ยังสอบอยู่คิดจากคำตอบ · ปิดแล้วใช้ที่เก็บไว้ */
+  private attemptsOf(e: MemExam): GbAttempt[] {
     if (!e.classroomId || e.purpose === 'practice') return [];
     const live = this.scans.get(e.id);
-    return live ? [...live.keys()].sort((a, b) => a - b) : [...e.gbSeats];
+    if (!live) return clone(e.gbAttempts);
+    const indOf = new Map(e.items.map((x) => [x.itemId, x]));
+    const out: GbAttempt[] = [];
+    for (const r of [...live.values()].sort((a, b) => a.seatNo - b.seatNo)) {
+      const set = e.sets.find((x) => x.setNo === r.setNo);
+      if (!set) continue;
+      const per = new Map<string, { c: number; t: number }>();
+      set.entries.forEach((en, k) => {
+        const x = indOf.get(en.itemId)!;
+        const it = this.items.find((i) => i.id === en.itemId)!;
+        const key = en.optionOrder.indexOf(it.versions.find((v) => v.version === x.version)!.answer.choice) + 1;
+        const cur = per.get(x.indicatorId) ?? { c: 0, t: 0 };
+        cur.t += 1;
+        if (r.answers[k] === key) cur.c += 1;
+        per.set(x.indicatorId, cur);
+      });
+      for (const [indicatorId, v] of per) out.push({ examId: e.id, seatNo: r.seatNo, indicatorId, correct: v.c, total: v.t });
+    }
+    return out;
   }
   private normalizedLink(link?: ExamLink) {
     if (!link) return { classroomId: null, purpose: 'practice' as const, retakeOf: null };
@@ -906,5 +936,61 @@ export class MemoryRepo implements Repo {
     const { c, col } = this.findColumn(columnId);
     if (col.kind === 'final') throw new Error('ลบช่องปลายภาคไม่ได้ (ตั้งคะแนนเต็มเป็น 0 ได้ถ้าไม่ใช้)');
     c.columns = c.columns.filter((x) => x.id !== columnId);
+    this.overrides = this.overrides.filter((o) => o.columnId !== columnId);   // คะแนนที่ปรับของช่องนี้หาย (on delete cascade)
+  }
+
+  // ---------- One Stop เฟส 4: สมุดคะแนน (เลียนแบบ gb_sheet / gb_override_set / gb_retake_choose ใน 0011) ----------
+  private lastExamStamp = 0;
+  /** เวลาสร้างชุดไม่ซ้ำกัน (เรียงครั้งล่าสุดของสอบซ่อมได้แน่นอน แม้สร้างในมิลลิวินาทีเดียวกัน) */
+  private examStamp(): string {
+    this.lastExamStamp = Math.max(Date.now(), this.lastExamStamp + 1);
+    return new Date(this.lastExamStamp).toISOString();
+  }
+  private overrides: Array<{ columnId: number; seatNo: number; score: number; reason: GbOverrideReason }> = [];
+  private retakeChoices: GbRetakeChoice[] = [];
+
+  async getGradebook(classroomId: string): Promise<GbSheet> {
+    this.requireSignedIn();
+    const c = this.classrooms.find((x) => x.id === classroomId);
+    if (!c) throw new Error('ไม่พบห้องเรียน');
+    const eff = effectiveSettings(c.settings, gradebookDefaults(this.settingsMap()));
+    const exams = this.exams.filter((e) => e.classroomId === c.id);
+    const colIds = new Set(c.columns.map((x) => x.id));
+    return computeSheet({
+      classroom: { id: c.id, name: c.name, subjectId: c.subjectId, gradeId: c.gradeId, academicYear: c.academicYear, term: c.term,
+        studentCount: c.studentCount, status: c.status, settings: eff },
+      columns: clone(c.columns),
+      indicator: (id) => this.indicators.find((i) => i.id === id),
+      exams: exams.map((e) => ({ id: e.id, title: e.title, purpose: e.purpose, retakeOf: e.retakeOf, status: e.status, createdAt: e.createdAt,
+        itemIndicators: e.items.map((x) => x.indicatorId) })),
+      attempts: exams.flatMap((e) => this.attemptsOf(e)),
+      overrides: clone(this.overrides.filter((o) => colIds.has(o.columnId))),
+      retakeChoices: clone(this.retakeChoices.filter((r) => exams.some((e) => e.id === r.rootExamId))),
+    });
+  }
+
+  async setOverride(columnId: number, seatNo: number, score: number | null, reason: GbOverrideReason): Promise<void> {
+    const { c, col } = this.findColumn(columnId);
+    if (!Number.isInteger(seatNo) || seatNo < 1 || seatNo > Math.max(c.studentCount, 1)) throw new Error(`ไม่มีเลขที่ ${seatNo} ในห้องนี้`);
+    this.overrides = this.overrides.filter((o) => !(o.columnId === columnId && o.seatNo === seatNo));
+    if (score === null) return;
+    if (!(score >= 0) || (col.maxScore !== null && score > col.maxScore)) throw new Error(`คะแนนต้องอยู่ระหว่าง 0 ถึง ${col.maxScore}`);
+    if (reason !== 'pass' && reason !== 'manual') throw new Error('เหตุผลการปรับไม่ถูกต้อง');
+    this.overrides.push({ columnId, seatNo, score: Math.round(score * 100) / 100, reason });
+  }
+
+  async chooseRetake(rootExamId: string, seatNo: number, chosenExamId: string | null): Promise<void> {
+    this.requireSignedIn();
+    const root = this.exams.find((x) => x.id === rootExamId);
+    if (!root) throw new Error('ไม่พบชุดข้อสอบ');
+    if (root.retakeOf) throw new Error('ต้องระบุชุดแรกของกลุ่มสอบซ่อม');
+    if (!root.classroomId) throw new Error('ชุดนี้ไม่ได้ผูกห้องเรียน');
+    this.requireClassroom(root.classroomId);
+    this.retakeChoices = this.retakeChoices.filter((r) => !(r.rootExamId === rootExamId && r.seatNo === seatNo));
+    if (chosenExamId === null) return;
+    const chosen = this.exams.find((x) => x.id === chosenExamId);
+    if (chosenExamId !== rootExamId && (!chosen || chosen.retakeOf !== rootExamId)) throw new Error('ชุดที่เลือกไม่ใช่สอบซ่อมของชุดนี้');
+    if (!chosen || !this.attemptsOf(chosen).some((a) => a.seatNo === seatNo)) throw new Error(`เลขที่ ${seatNo} ไม่มีผลสอบในชุดที่เลือก`);
+    this.retakeChoices.push({ rootExamId, seatNo, chosenExamId });
   }
 }

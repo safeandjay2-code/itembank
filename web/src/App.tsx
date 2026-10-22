@@ -21,6 +21,7 @@ import { HealthPage } from './modules/calibration/HealthPage';
 import { ClassroomListPage } from './modules/gradebook/ClassroomListPage';
 import { ClassroomNewPage } from './modules/gradebook/ClassroomNewPage';
 import { ClassroomSettingsPage } from './modules/gradebook/ClassroomSettingsPage';
+import { GradebookPage } from './modules/gradebook/GradebookPage';
 import { useRoute } from './ui/router';
 
 // เมนูของระบบ — โมดูลที่ยังไม่สร้างแสดงเป็น "เร็ว ๆ นี้" พร้อมเฟส (เพิ่มหน้าใหม่ได้ที่นี่ที่เดียว)
@@ -61,6 +62,7 @@ export function App() {
   const closeMatch = /^\/exams\/([^/]+)\/close$/.exec(path);
   const examMatch = /^\/exams\/([^/]+)$/.exec(path);
   const classMatch = /^\/classes\/([^/]+)$/.exec(path);
+  const bookMatch = /^\/classes\/([^/]+)\/book$/.exec(path);
 
   function page() {
     const needsAdmin = path.startsWith('/items') || path === '/backup' || path === '/health';
@@ -68,6 +70,7 @@ export function App() {
     if (needsAdmin && !profile) return <p className="sub">กำลังโหลด…</p>;
     if (path === '/classes') return <ClassroomListPage />;
     if (path === '/classes/new') return <ClassroomNewPage />;
+    if (bookMatch) return <GradebookPage key={bookMatch[1]} id={bookMatch[1]} route={route} />;
     if (classMatch) return <ClassroomSettingsPage key={classMatch[1]} id={classMatch[1]} route={route} />;
     if (path === '/coverage') return <CoveragePage />;
     if (path === '/items') return <ItemListPage route={route} />;

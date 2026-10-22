@@ -1,0 +1,860 @@
+{
+ "sheet": {
+  "rows": [
+   {
+    "cells": [
+     {
+      "real": 5.0,
+      "value": 5,
+      "reason": null,
+      "missing": [],
+      "adjusted": null,
+      "column_id": 6,
+      "raw_total": 1,
+      "raw_correct": 1.0
+     },
+     {
+      "real": 20.0,
+      "value": 20,
+      "reason": null,
+      "missing": [],
+      "adjusted": null,
+      "column_id": 3,
+      "raw_total": 3,
+      "raw_correct": 3.0
+     },
+     {
+      "real": 10.0,
+      "value": 10,
+      "reason": null,
+      "missing": [],
+      "adjusted": null,
+      "column_id": 2,
+      "raw_total": 5,
+      "raw_correct": 5.0
+     },
+     {
+      "real": null,
+      "value": null,
+      "reason": null,
+      "missing": [],
+      "adjusted": null,
+      "column_id": 4,
+      "raw_total": null,
+      "raw_correct": null
+     },
+     {
+      "real": 30.0,
+      "value": 30,
+      "reason": null,
+      "missing": [],
+      "adjusted": null,
+      "column_id": 1,
+      "raw_total": 6,
+      "raw_correct": 6.0
+     }
+    ],
+    "total": 65,
+    "seat_no": 1,
+    "total_final": 30,
+    "total_collect": 35
+   },
+   {
+    "cells": [
+     {
+      "real": 0.0,
+      "value": 0,
+      "reason": null,
+      "missing": [
+       "00000000-0000-4000-e800-000000000005"
+      ],
+      "adjusted": null,
+      "column_id": 6,
+      "raw_total": 1,
+      "raw_correct": 0.0
+     },
+     {
+      "real": 6.67,
+      "value": 7,
+      "reason": null,
+      "missing": [],
+      "adjusted": null,
+      "column_id": 3,
+      "raw_total": 3,
+      "raw_correct": 1.0
+     },
+     {
+      "real": 8.0,
+      "value": 8,
+      "reason": null,
+      "missing": [],
+      "adjusted": null,
+      "column_id": 2,
+      "raw_total": 5,
+      "raw_correct": 4.0
+     },
+     {
+      "real": null,
+      "value": 4,
+      "reason": "manual",
+      "missing": [],
+      "adjusted": 4.0,
+      "column_id": 4,
+      "raw_total": null,
+      "raw_correct": null
+     },
+     {
+      "real": 15.0,
+      "value": 15,
+      "reason": null,
+      "missing": [],
+      "adjusted": null,
+      "column_id": 1,
+      "raw_total": 6,
+      "raw_correct": 3.0
+     }
+    ],
+    "total": 34,
+    "seat_no": 2,
+    "total_final": 15,
+    "total_collect": 19
+   },
+   {
+    "cells": [
+     {
+      "real": 0.0,
+      "value": 0,
+      "reason": null,
+      "missing": [
+       "00000000-0000-4000-e800-000000000005"
+      ],
+      "adjusted": null,
+      "column_id": 6,
+      "raw_total": 1,
+      "raw_correct": 0.0
+     },
+     {
+      "real": 20.0,
+      "value": 20,
+      "reason": null,
+      "missing": [],
+      "adjusted": null,
+      "column_id": 3,
+      "raw_total": 3,
+      "raw_correct": 3.0
+     },
+     {
+      "real": 0.0,
+      "value": 0,
+      "reason": null,
+      "missing": [],
+      "adjusted": null,
+      "column_id": 2,
+      "raw_total": 5,
+      "raw_correct": 0.0
+     },
+     {
+      "real": null,
+      "value": null,
+      "reason": null,
+      "missing": [],
+      "adjusted": null,
+      "column_id": 4,
+      "raw_total": null,
+      "raw_correct": null
+     },
+     {
+      "real": 0.0,
+      "value": 0,
+      "reason": null,
+      "missing": [
+       "00000000-0000-4000-e800-000000000004"
+      ],
+      "adjusted": null,
+      "column_id": 1,
+      "raw_total": 6,
+      "raw_correct": 0.0
+     }
+    ],
+    "total": 20,
+    "seat_no": 3,
+    "total_final": 0,
+    "total_collect": 20
+   },
+   {
+    "cells": [
+     {
+      "real": 0.0,
+      "value": 0,
+      "reason": null,
+      "missing": [
+       "00000000-0000-4000-e800-000000000005"
+      ],
+      "adjusted": null,
+      "column_id": 6,
+      "raw_total": 1,
+      "raw_correct": 0.0
+     },
+     {
+      "real": 0.0,
+      "value": 0,
+      "reason": null,
+      "missing": [
+       "00000000-0000-4000-e800-000000000001"
+      ],
+      "adjusted": null,
+      "column_id": 3,
+      "raw_total": 3,
+      "raw_correct": 0.0
+     },
+     {
+      "real": 4.0,
+      "value": 5,
+      "reason": "pass",
+      "missing": [
+       "00000000-0000-4000-e800-000000000001"
+      ],
+      "adjusted": 5.0,
+      "column_id": 2,
+      "raw_total": 5,
+      "raw_correct": 2.0
+     },
+     {
+      "real": null,
+      "value": null,
+      "reason": null,
+      "missing": [],
+      "adjusted": null,
+      "column_id": 4,
+      "raw_total": null,
+      "raw_correct": null
+     },
+     {
+      "real": 0.0,
+      "value": 0,
+      "reason": null,
+      "missing": [
+       "00000000-0000-4000-e800-000000000004"
+      ],
+      "adjusted": null,
+      "column_id": 1,
+      "raw_total": 6,
+      "raw_correct": 0.0
+     }
+    ],
+    "total": 5,
+    "seat_no": 4,
+    "total_final": 0,
+    "total_collect": 5
+   },
+   {
+    "cells": [
+     {
+      "real": 0.0,
+      "value": 0,
+      "reason": null,
+      "missing": [
+       "00000000-0000-4000-e800-000000000005"
+      ],
+      "adjusted": null,
+      "column_id": 6,
+      "raw_total": 1,
+      "raw_correct": 0.0
+     },
+     {
+      "real": 0.0,
+      "value": 0,
+      "reason": null,
+      "missing": [],
+      "adjusted": null,
+      "column_id": 3,
+      "raw_total": 3,
+      "raw_correct": 0.0
+     },
+     {
+      "real": 4.0,
+      "value": 4,
+      "reason": null,
+      "missing": [
+       "00000000-0000-4000-e800-000000000002"
+      ],
+      "adjusted": null,
+      "column_id": 2,
+      "raw_total": 5,
+      "raw_correct": 2.0
+     },
+     {
+      "real": null,
+      "value": null,
+      "reason": null,
+      "missing": [],
+      "adjusted": null,
+      "column_id": 4,
+      "raw_total": null,
+      "raw_correct": null
+     },
+     {
+      "real": 0.0,
+      "value": 0,
+      "reason": null,
+      "missing": [
+       "00000000-0000-4000-e800-000000000004"
+      ],
+      "adjusted": null,
+      "column_id": 1,
+      "raw_total": 6,
+      "raw_correct": 0.0
+     }
+    ],
+    "total": 4,
+    "seat_no": 5,
+    "total_final": 0,
+    "total_collect": 4
+   }
+  ],
+  "exams": [
+   {
+    "id": "00000000-0000-4000-e800-000000000001",
+    "title": "เก็บคะแนน 1",
+    "status": "open",
+    "purpose": "collect",
+    "retake_of": null,
+    "created_at": "2026-10-21T04:36:01.186528+00:00"
+   },
+   {
+    "id": "00000000-0000-4000-e800-000000000002",
+    "title": "เก็บคะแนน 2",
+    "status": "open",
+    "purpose": "collect",
+    "retake_of": null,
+    "created_at": "2026-10-21T04:37:01.19078+00:00"
+   },
+   {
+    "id": "00000000-0000-4000-e800-000000000003",
+    "title": "สอบซ่อม 1",
+    "status": "open",
+    "purpose": "collect",
+    "retake_of": "00000000-0000-4000-e800-000000000001",
+    "created_at": "2026-10-21T04:38:01.191987+00:00"
+   },
+   {
+    "id": "00000000-0000-4000-e800-000000000004",
+    "title": "ปลายภาค",
+    "status": "open",
+    "purpose": "final",
+    "retake_of": null,
+    "created_at": "2026-10-21T04:39:01.193094+00:00"
+   },
+   {
+    "id": "00000000-0000-4000-e800-000000000005",
+    "title": "เก็บคะแนน 3",
+    "status": "open",
+    "purpose": "collect",
+    "retake_of": null,
+    "created_at": "2026-10-21T04:40:01.194214+00:00"
+   },
+   {
+    "id": "00000000-0000-4000-e800-000000000007",
+    "title": "ยังไม่สอบ",
+    "status": "draft",
+    "purpose": "collect",
+    "retake_of": null,
+    "created_at": "2026-10-21T04:42:01.196446+00:00"
+   }
+  ],
+  "totals": {
+   "max": 70.0,
+   "final_max": 30.0,
+   "collect_max": 40.0,
+   "unset_columns": 0
+  },
+  "columns": [
+   {
+    "id": 6,
+    "code": "ค 1.1 ป.5/9",
+    "kind": "indicator",
+    "sort": 1,
+    "text": "แสดงวิธีหาคำตอบของโจทย์ปัญหาร้อยละไม่เกิน 2 ขั้นตอน",
+    "label": null,
+    "scale": "number",
+    "groups": [
+     {
+      "root": "00000000-0000-4000-e800-000000000005",
+      "exams": [
+       "00000000-0000-4000-e800-000000000005"
+      ],
+      "item_total": 1
+     }
+    ],
+    "collected": true,
+    "max_score": 5.0,
+    "indicator_id": "MATH-2560-P5-03",
+    "standard_code": "ค 1.1",
+    "indicator_code": "ป.5/9"
+   },
+   {
+    "id": 3,
+    "code": "ค 1.1 ป.5/2",
+    "kind": "indicator",
+    "sort": 2,
+    "text": "แสดงวิธีหาคำตอบของโจทย์ปัญหา โดยใช้บัญญัติไตรยางศ์",
+    "label": null,
+    "scale": "number",
+    "groups": [
+     {
+      "root": "00000000-0000-4000-e800-000000000001",
+      "exams": [
+       "00000000-0000-4000-e800-000000000001",
+       "00000000-0000-4000-e800-000000000003"
+      ],
+      "item_total": 3
+     }
+    ],
+    "collected": true,
+    "max_score": 20.0,
+    "indicator_id": "MATH-2560-P5-02",
+    "standard_code": "ค 1.1",
+    "indicator_code": "ป.5/2"
+   },
+   {
+    "id": 2,
+    "code": "ค 1.1 ป.5/8",
+    "kind": "indicator",
+    "sort": 3,
+    "text": "แสดงวิธีหาคำตอบของโจทย์ปัญหาการบวก การลบ การคูณ การหารทศนิยม 2 ขั้นตอน",
+    "label": null,
+    "scale": "number",
+    "groups": [
+     {
+      "root": "00000000-0000-4000-e800-000000000002",
+      "exams": [
+       "00000000-0000-4000-e800-000000000002"
+      ],
+      "item_total": 2
+     },
+     {
+      "root": "00000000-0000-4000-e800-000000000001",
+      "exams": [
+       "00000000-0000-4000-e800-000000000001",
+       "00000000-0000-4000-e800-000000000003"
+      ],
+      "item_total": 3
+     }
+    ],
+    "collected": true,
+    "max_score": 10.0,
+    "indicator_id": "MATH-2560-P5-01",
+    "standard_code": "ค 1.1",
+    "indicator_code": "ป.5/8"
+   },
+   {
+    "id": 4,
+    "code": null,
+    "kind": "other",
+    "sort": 4,
+    "text": null,
+    "label": "งานกลุ่ม",
+    "scale": "number",
+    "groups": [],
+    "collected": false,
+    "max_score": 5.0,
+    "indicator_id": null,
+    "standard_code": null,
+    "indicator_code": null
+   },
+   {
+    "id": 1,
+    "code": null,
+    "kind": "final",
+    "sort": 0,
+    "text": null,
+    "label": null,
+    "scale": "number",
+    "groups": [
+     {
+      "root": "00000000-0000-4000-e800-000000000004",
+      "exams": [
+       "00000000-0000-4000-e800-000000000004"
+      ],
+      "item_total": 6
+     }
+    ],
+    "collected": true,
+    "max_score": 30.0,
+    "indicator_id": null,
+    "standard_code": null,
+    "indicator_code": null
+   }
+  ],
+  "classroom": {
+   "id": "9040916c-1d3e-43d8-ac82-dd2668e1772f",
+   "name": "ป.5/1",
+   "term": 2,
+   "status": "open",
+   "grade_id": "P5",
+   "settings": {
+    "rounding": "int",
+    "aggregation": "sum",
+    "absent_policy": "zero",
+    "retake_policy": "manual",
+    "show_other_columns": false
+   },
+   "subject_id": "MATH",
+   "academic_year": 2569,
+   "student_count": 5
+  },
+  "seat_count": 5,
+  "unplanned_indicators": []
+ },
+ "attempts": [
+  {
+   "exam_id": "00000000-0000-4000-e800-000000000001",
+   "seat_no": 1,
+   "indicator_id": "MATH-2560-P5-01",
+   "correct": 3,
+   "total": 3,
+   "updated_at": "2026-10-22T04:35:01.233143+00:00"
+  },
+  {
+   "exam_id": "00000000-0000-4000-e800-000000000001",
+   "seat_no": 1,
+   "indicator_id": "MATH-2560-P5-02",
+   "correct": 3,
+   "total": 3,
+   "updated_at": "2026-10-22T04:35:01.233143+00:00"
+  },
+  {
+   "exam_id": "00000000-0000-4000-e800-000000000001",
+   "seat_no": 3,
+   "indicator_id": "MATH-2560-P5-01",
+   "correct": 0,
+   "total": 3,
+   "updated_at": "2026-10-22T04:35:01.240368+00:00"
+  },
+  {
+   "exam_id": "00000000-0000-4000-e800-000000000001",
+   "seat_no": 3,
+   "indicator_id": "MATH-2560-P5-02",
+   "correct": 3,
+   "total": 3,
+   "updated_at": "2026-10-22T04:35:01.240368+00:00"
+  },
+  {
+   "exam_id": "00000000-0000-4000-e800-000000000001",
+   "seat_no": 5,
+   "indicator_id": "MATH-2560-P5-01",
+   "correct": 1,
+   "total": 3,
+   "updated_at": "2026-10-22T04:35:01.242636+00:00"
+  },
+  {
+   "exam_id": "00000000-0000-4000-e800-000000000001",
+   "seat_no": 5,
+   "indicator_id": "MATH-2560-P5-02",
+   "correct": 0,
+   "total": 3,
+   "updated_at": "2026-10-22T04:35:01.242636+00:00"
+  },
+  {
+   "exam_id": "00000000-0000-4000-e800-000000000001",
+   "seat_no": 2,
+   "indicator_id": "MATH-2560-P5-01",
+   "correct": 2,
+   "total": 3,
+   "updated_at": "2026-10-22T04:35:01.26494+00:00"
+  },
+  {
+   "exam_id": "00000000-0000-4000-e800-000000000001",
+   "seat_no": 2,
+   "indicator_id": "MATH-2560-P5-02",
+   "correct": 1,
+   "total": 3,
+   "updated_at": "2026-10-22T04:35:01.26494+00:00"
+  },
+  {
+   "exam_id": "00000000-0000-4000-e800-000000000002",
+   "seat_no": 1,
+   "indicator_id": "MATH-2560-P5-01",
+   "correct": 2,
+   "total": 2,
+   "updated_at": "2026-10-22T04:35:01.245563+00:00"
+  },
+  {
+   "exam_id": "00000000-0000-4000-e800-000000000002",
+   "seat_no": 2,
+   "indicator_id": "MATH-2560-P5-01",
+   "correct": 2,
+   "total": 2,
+   "updated_at": "2026-10-22T04:35:01.247738+00:00"
+  },
+  {
+   "exam_id": "00000000-0000-4000-e800-000000000002",
+   "seat_no": 3,
+   "indicator_id": "MATH-2560-P5-01",
+   "correct": 0,
+   "total": 2,
+   "updated_at": "2026-10-22T04:35:01.249856+00:00"
+  },
+  {
+   "exam_id": "00000000-0000-4000-e800-000000000002",
+   "seat_no": 4,
+   "indicator_id": "MATH-2560-P5-01",
+   "correct": 2,
+   "total": 2,
+   "updated_at": "2026-10-22T04:35:02.321779+00:00"
+  },
+  {
+   "exam_id": "00000000-0000-4000-e800-000000000003",
+   "seat_no": 3,
+   "indicator_id": "MATH-2560-P5-01",
+   "correct": 3,
+   "total": 3,
+   "updated_at": "2026-10-22T04:35:01.253152+00:00"
+  },
+  {
+   "exam_id": "00000000-0000-4000-e800-000000000003",
+   "seat_no": 3,
+   "indicator_id": "MATH-2560-P5-02",
+   "correct": 0,
+   "total": 3,
+   "updated_at": "2026-10-22T04:35:01.253152+00:00"
+  },
+  {
+   "exam_id": "00000000-0000-4000-e800-000000000003",
+   "seat_no": 5,
+   "indicator_id": "MATH-2560-P5-01",
+   "correct": 2,
+   "total": 3,
+   "updated_at": "2026-10-22T04:35:01.254739+00:00"
+  },
+  {
+   "exam_id": "00000000-0000-4000-e800-000000000003",
+   "seat_no": 5,
+   "indicator_id": "MATH-2560-P5-02",
+   "correct": 0,
+   "total": 3,
+   "updated_at": "2026-10-22T04:35:01.254739+00:00"
+  },
+  {
+   "exam_id": "00000000-0000-4000-e800-000000000004",
+   "seat_no": 1,
+   "indicator_id": "MATH-2560-P5-01",
+   "correct": 3,
+   "total": 3,
+   "updated_at": "2026-10-22T04:35:01.256296+00:00"
+  },
+  {
+   "exam_id": "00000000-0000-4000-e800-000000000004",
+   "seat_no": 1,
+   "indicator_id": "MATH-2560-P5-02",
+   "correct": 3,
+   "total": 3,
+   "updated_at": "2026-10-22T04:35:01.256296+00:00"
+  },
+  {
+   "exam_id": "00000000-0000-4000-e800-000000000004",
+   "seat_no": 2,
+   "indicator_id": "MATH-2560-P5-01",
+   "correct": 3,
+   "total": 3,
+   "updated_at": "2026-10-22T04:35:01.257836+00:00"
+  },
+  {
+   "exam_id": "00000000-0000-4000-e800-000000000004",
+   "seat_no": 2,
+   "indicator_id": "MATH-2560-P5-02",
+   "correct": 0,
+   "total": 3,
+   "updated_at": "2026-10-22T04:35:01.257836+00:00"
+  },
+  {
+   "exam_id": "00000000-0000-4000-e800-000000000005",
+   "seat_no": 1,
+   "indicator_id": "MATH-2560-P5-03",
+   "correct": 1,
+   "total": 1,
+   "updated_at": "2026-10-22T04:35:02.199007+00:00"
+  }
+ ],
+ "choices": [
+  {
+   "root_exam_id": "00000000-0000-4000-e800-000000000001",
+   "seat_no": 3,
+   "chosen_exam_id": "00000000-0000-4000-e800-000000000001",
+   "updated_at": "2026-10-22T04:35:02.324522+00:00"
+  }
+ ],
+ "input": {
+  "columns": [
+   {
+    "id": 1,
+    "classroom_id": "9040916c-1d3e-43d8-ac82-dd2668e1772f",
+    "kind": "final",
+    "indicator_id": null,
+    "label": null,
+    "max_score": 30.0,
+    "scale": "number",
+    "sort": 0,
+    "created_at": "2026-10-22T04:35:01.199591+00:00"
+   },
+   {
+    "id": 3,
+    "classroom_id": "9040916c-1d3e-43d8-ac82-dd2668e1772f",
+    "kind": "indicator",
+    "indicator_id": "MATH-2560-P5-02",
+    "label": null,
+    "max_score": 20.0,
+    "scale": "number",
+    "sort": 2,
+    "created_at": "2026-10-22T04:35:01.206544+00:00"
+   },
+   {
+    "id": 4,
+    "classroom_id": "9040916c-1d3e-43d8-ac82-dd2668e1772f",
+    "kind": "other",
+    "indicator_id": null,
+    "label": "งานกลุ่ม",
+    "max_score": 5.0,
+    "scale": "number",
+    "sort": 4,
+    "created_at": "2026-10-22T04:35:01.207476+00:00"
+   },
+   {
+    "id": 2,
+    "classroom_id": "9040916c-1d3e-43d8-ac82-dd2668e1772f",
+    "kind": "indicator",
+    "indicator_id": "MATH-2560-P5-01",
+    "label": null,
+    "max_score": 10.0,
+    "scale": "number",
+    "sort": 3,
+    "created_at": "2026-10-22T04:35:01.204801+00:00"
+   },
+   {
+    "id": 6,
+    "classroom_id": "9040916c-1d3e-43d8-ac82-dd2668e1772f",
+    "kind": "indicator",
+    "indicator_id": "MATH-2560-P5-03",
+    "label": null,
+    "max_score": 5.0,
+    "scale": "number",
+    "sort": 1,
+    "created_at": "2026-10-22T04:35:02.209593+00:00"
+   }
+  ],
+  "overrides": [
+   {
+    "column_id": 2,
+    "seat_no": 4,
+    "score": 5.0,
+    "reason": "pass",
+    "updated_at": "2026-10-22T04:35:02.251741+00:00"
+   },
+   {
+    "column_id": 4,
+    "seat_no": 2,
+    "score": 4.0,
+    "reason": "manual",
+    "updated_at": "2026-10-22T04:35:02.253036+00:00"
+   }
+  ],
+  "exams": [
+   {
+    "id": "00000000-0000-4000-e800-000000000001",
+    "title": "เก็บคะแนน 1",
+    "purpose": "collect",
+    "retake_of": null,
+    "status": "open",
+    "created_at": "2026-10-21T04:36:01.186528+00:00",
+    "items": [
+     "MATH-2560-P5-01",
+     "MATH-2560-P5-01",
+     "MATH-2560-P5-01",
+     "MATH-2560-P5-02",
+     "MATH-2560-P5-02",
+     "MATH-2560-P5-02"
+    ]
+   },
+   {
+    "id": "00000000-0000-4000-e800-000000000002",
+    "title": "เก็บคะแนน 2",
+    "purpose": "collect",
+    "retake_of": null,
+    "status": "open",
+    "created_at": "2026-10-21T04:37:01.19078+00:00",
+    "items": [
+     "MATH-2560-P5-01",
+     "MATH-2560-P5-01"
+    ]
+   },
+   {
+    "id": "00000000-0000-4000-e800-000000000003",
+    "title": "สอบซ่อม 1",
+    "purpose": "collect",
+    "retake_of": "00000000-0000-4000-e800-000000000001",
+    "status": "open",
+    "created_at": "2026-10-21T04:38:01.191987+00:00",
+    "items": [
+     "MATH-2560-P5-01",
+     "MATH-2560-P5-01",
+     "MATH-2560-P5-01",
+     "MATH-2560-P5-02",
+     "MATH-2560-P5-02",
+     "MATH-2560-P5-02"
+    ]
+   },
+   {
+    "id": "00000000-0000-4000-e800-000000000004",
+    "title": "ปลายภาค",
+    "purpose": "final",
+    "retake_of": null,
+    "status": "open",
+    "created_at": "2026-10-21T04:39:01.193094+00:00",
+    "items": [
+     "MATH-2560-P5-01",
+     "MATH-2560-P5-01",
+     "MATH-2560-P5-01",
+     "MATH-2560-P5-02",
+     "MATH-2560-P5-02",
+     "MATH-2560-P5-02"
+    ]
+   },
+   {
+    "id": "00000000-0000-4000-e800-000000000005",
+    "title": "เก็บคะแนน 3",
+    "purpose": "collect",
+    "retake_of": null,
+    "status": "open",
+    "created_at": "2026-10-21T04:40:01.194214+00:00",
+    "items": [
+     "MATH-2560-P5-03"
+    ]
+   },
+   {
+    "id": "00000000-0000-4000-e800-000000000007",
+    "title": "ยังไม่สอบ",
+    "purpose": "collect",
+    "retake_of": null,
+    "status": "draft",
+    "created_at": "2026-10-21T04:42:01.196446+00:00",
+    "items": [
+     "MATH-2560-P5-01"
+    ]
+   }
+  ],
+  "ind": {
+   "MATH-2560-P5-01": {
+    "code": "ค 1.1 ป.5/8",
+    "text": "แสดงวิธีหาคำตอบของโจทย์ปัญหาการบวก การลบ การคูณ การหารทศนิยม 2 ขั้นตอน"
+   },
+   "MATH-2560-P5-02": {
+    "code": "ค 1.1 ป.5/2",
+    "text": "แสดงวิธีหาคำตอบของโจทย์ปัญหา โดยใช้บัญญัติไตรยางศ์"
+   },
+   "MATH-2560-P5-03": {
+    "code": "ค 1.1 ป.5/9",
+    "text": "แสดงวิธีหาคำตอบของโจทย์ปัญหาร้อยละไม่เกิน 2 ขั้นตอน"
+   }
+  }
+ }
+}

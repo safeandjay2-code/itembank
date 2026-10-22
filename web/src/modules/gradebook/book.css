@@ -1,0 +1,65 @@
+/* สมุดคะแนน (One Stop เฟส 4) */
+.book-alerts { display: grid; gap: 6px; margin-bottom: 12px; }
+.book-alerts .alert { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; padding: 8px 12px; border-radius: 8px; background: var(--low-bg); font-size: .92rem; }
+.book-alerts .alert.info { background: var(--none-bg); }
+.book-alerts .alert .btn { padding: 4px 10px; font-size: .85rem; }
+.book-policy { font-size: .85rem; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 4px 0 0; }
+
+.book-wrap { overflow: auto; max-height: 72vh; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+table.book { border-collapse: separate; border-spacing: 0; font-size: .9rem; font-variant-numeric: tabular-nums; }
+table.book th, table.book td { border-bottom: 1px solid var(--line); border-right: 1px solid var(--line); padding: 0; text-align: center; white-space: nowrap; }
+table.book thead th { background: var(--none-bg); font-weight: 600; position: sticky; z-index: 2; padding: 4px 6px; }
+table.book thead tr:nth-child(1) th { top: 0; }
+table.book thead tr:nth-child(2) th { top: 30px; }
+table.book thead tr:nth-child(3) th { top: 60px; font-weight: 400; color: var(--muted); font-size: .8rem; }
+table.book thead th { height: 30px; }
+table.book .seat { position: sticky; left: 0; z-index: 1; background: var(--surface); min-width: 44px; font-weight: 600; padding: 4px 6px; }
+table.book thead .seat { z-index: 3; background: var(--none-bg); }
+table.book th.col-head { cursor: pointer; }
+table.book th.col-head button { all: unset; cursor: pointer; display: block; width: 100%; }
+table.book th.col-head:hover, table.book th.col-head:focus-within { background: var(--ok-bg); }
+table.book th.uncollected { color: var(--muted); font-style: italic; }
+table.book .sum { background: var(--none-bg); font-weight: 700; padding: 4px 8px; min-width: 52px; }
+table.book td.cell-td { min-width: 58px; }
+table.book td.cell-td button { all: unset; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  width: 100%; min-height: 40px; padding: 2px 6px; cursor: pointer; }
+table.book td.cell-td button:hover, table.book td.cell-td button:focus-visible { background: var(--ok-bg); outline: 2px solid var(--accent); outline-offset: -2px; }
+table.book td.cell-td.selected button { background: var(--ok-bg); box-shadow: inset 0 0 0 2px var(--accent); }
+table.book td.cell-td.below { background: var(--low-bg); color: var(--warn); font-weight: 600; }
+table.book td.cell-td.adj .v::after { content: '*'; color: var(--accent); font-weight: 700; margin-left: 1px; }
+table.book td.cell-td .tagline { font-size: .66rem; line-height: 1; color: var(--muted); font-weight: 400; }
+table.book td.cell-td .tagline.absent { color: var(--warn); }
+table.book td.cell-td .empty { color: var(--muted); }
+table.book tfoot td { background: var(--none-bg); font-size: .8rem; color: var(--muted); padding: 4px 6px; position: sticky; bottom: 0; }
+table.book tfoot tr:nth-child(1) td { bottom: 26px; }
+table.book tfoot td.seat { font-weight: 600; text-align: left; white-space: nowrap; }
+table.book tfoot td.warnnum { color: var(--warn); font-weight: 600; }
+.book-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: .82rem; color: var(--muted); margin: 8px 0 14px; }
+.book-legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 4px; vertical-align: -1px; }
+
+/* แผงรายละเอียด (เลขที่ × ช่อง / ทั้งช่อง) */
+.book-panel { position: fixed; z-index: 20; right: 16px; bottom: 16px; width: min(420px, calc(100vw - 32px)); max-height: min(78vh, 640px); overflow: auto;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 10px 30px rgba(0, 0, 0, .18); padding: 14px 16px; }
+.book-panel h2 { margin: 0 0 2px; font-size: 1.05rem; padding-right: 36px; }
+.book-panel .close { position: absolute; top: 8px; right: 8px; }
+.book-panel .kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 10px 0; font-size: .92rem; }
+.book-panel .kv dt { color: var(--muted); }
+.book-panel .kv dd { margin: 0; font-weight: 600; }
+.book-panel .groups { list-style: none; padding: 0; margin: 8px 0; display: grid; gap: 8px; }
+.book-panel .groups > li { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+.book-panel .groups .gtitle { font-weight: 600; font-size: .9rem; }
+.book-panel .attempts { list-style: none; padding: 0; margin: 4px 0 0; display: grid; gap: 4px; font-size: .88rem; }
+.book-panel .attempts li { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.book-panel .attempts .counted { color: var(--accent); font-weight: 700; }
+.book-panel .adjust { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line); }
+.book-panel .adjust input { width: 80px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); text-align: right; }
+.book-panel .nav { display: flex; justify-content: space-between; gap: 8px; margin-top: 12px; }
+@media (max-width: 640px) {
+  .book-panel { left: 0; right: 0; bottom: 0; width: auto; border-radius: var(--radius) var(--radius) 0 0; max-height: 62vh; }
+}
+.chip.weak { background: var(--low-bg); color: var(--warn); }
+.row-link { display: inline-block; font-size: .88rem; margin: 2px 0 8px 12px; }
+.book-tabs { flex-wrap: wrap; }
+.book-tabs button { white-space: nowrap; }
+.page-head + div + .book-alerts, .book-alerts { margin-top: 10px; }
+@media (max-width: 640px) { .book-tabs button { padding: 5px 10px; font-size: .9rem; } }

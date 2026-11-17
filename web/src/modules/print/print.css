@@ -18,7 +18,13 @@
 .set-badge small { display: block; font-size: 14pt; }
 .set-badge b { display: block; font-size: 34pt; }
 .exam-instr { margin: 1.5mm 0 2.5mm; font-size: 15pt; }
-.exam-cols { column-count: 2; column-gap: 8mm; column-rule: .4pt solid #999; }
+.exam-cols2 { display: flex; gap: 0; }
+.exam-col { flex: 1 1 0; min-width: 0; }
+.exam-col:first-child { padding-right: 4mm; border-right: .4pt solid #999; }
+.exam-col + .exam-col { padding-left: 4mm; }
+/* ตัววัดความสูง: มองไม่เห็น ความกว้างคอลัมน์เท่าของจริง (182 − 8)/2 มม. */
+.exam-measure { position: absolute; left: -10000px; top: 0; visibility: hidden; width: 182mm; }
+.exam-measure .measure-col { width: 87mm; }
 .q { break-inside: avoid; page-break-inside: avoid; margin: 0 0 1.6mm; padding-top: 1.2mm; }  /* เว้นบน: สระ/วรรณยุกต์บรรทัดแรกไม่ล้นข้ามหน้า */
 .q-stem { display: flex; gap: 1.5mm; align-items: baseline; }
 .q-no { font-weight: 700; flex: 0 0 auto; }
@@ -41,17 +47,23 @@
 .key-table th, .key-table td { border: .4pt solid #888; padding: .3mm 1.5mm; text-align: center; }
 .key-table td:nth-child(-n+3) { text-align: left; }
 
-/* กระดาษคำตอบ: A5 สองแผ่นต่อ A4 แนวนอน */
+/* กระดาษคำตอบ: A5 สองแผ่นต่อ A4 แนวนอน (duo) หรือ 1 แผ่นต่อ A4 แนวตั้ง (sheets-a4) */
 .sheet-page { display: flex; gap: 0; }
 .sheet { width: 148mm; height: 210mm; flex: 0 0 148mm; }
 .sheet + .sheet { border-left: .3pt dashed #bbb; }
 .sheet svg { display: block; width: 148mm; height: 210mm; }
+.sheets-a4 .sheet { width: 210mm; height: 297mm; flex-basis: 210mm; }
+.sheets-a4 .sheet svg { width: 210mm; height: 297mm; }
 
 /* ---------- บนจอ: แสดงเป็นกระดาษเสมือน ---------- */
 @media screen {
   .print-stage { overflow-x: auto; background: #d9d6ce; border-radius: var(--radius); padding: 12px; }
   .print-stage .pdoc { margin: 0 auto; box-shadow: 0 1px 4px rgba(0,0,0,.25); }
-  .print-stage .exam-doc, .print-stage .key-doc { width: 210mm; min-height: 297mm; padding: 12mm 14mm; }
+  .print-stage .key-doc { width: 210mm; min-height: 297mm; padding: 12mm 14mm; }
+  .print-stage .exam-doc { background: transparent; box-shadow: none; display: grid; gap: 10px; justify-content: center; }
+  .print-stage .exam-page { width: 210mm; height: 297mm; padding: 12mm 14mm 14mm; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.25); overflow: hidden; position: relative; }
+  .print-stage .exam-page::after { content: "หน้า " attr(data-page); position: absolute; right: 14mm; bottom: 5mm; font-size: 12pt; color: #999; }
+  .print-stage .sheets-a4 { width: 210mm; }
   .print-stage .sheets-doc { width: 297mm; background: transparent; box-shadow: none; display: grid; gap: 10px; }
   .print-stage .sheet-page { background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.25); }
 }
@@ -62,6 +74,7 @@
 @page key { size: A4 portrait; margin: 12mm 14mm;
   @bottom-right { content: "เฉลยครู หน้า " counter(page) "/" counter(pages); font-family: 'TH Sarabun New', 'PrintThai', sans-serif; font-size: 12pt; } }
 @page sheets { size: A4 landscape; margin: 0; }
+@page sheetsA4 { size: A4 portrait; margin: 0; }
 @media print {
   html, body { background: #fff !important; }
   main { padding: 0 !important; margin: 0 !important; max-width: none !important; }
@@ -69,7 +82,18 @@
   .exam-doc { page: exam; }
   .key-doc { page: key; }
   .sheets-doc { page: sheets; }
+  .sheets-doc.sheets-a4 { page: sheetsA4; }
+  .sheets-a4 .sheet-page { width: 210mm; height: 297mm; }
+  .exam-page { break-after: page; }
+  .exam-page:last-child { break-after: auto; }
+  .exam-measure { display: none; }
   .sheet-page { break-after: page; width: 297mm; height: 210mm; overflow: hidden; }
+  .sheets-a4 .sheet-page { width: 210mm; height: 297mm; }
   .sheet-page:last-child { break-after: auto; }
   .topbar, .nav, .banner, .no-print { display: none !important; }
 }
+
+/* จำนวนฉบับที่ต้องพิมพ์ต่อชุด */
+.copies { margin: 8px 0; padding: 10px 14px; }
+.copies ul { margin: 4px 0 0; padding-left: 18px; }
+.copies li { margin: 2px 0; }

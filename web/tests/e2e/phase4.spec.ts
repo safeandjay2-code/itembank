@@ -94,10 +94,53 @@ test('แบบทดสอบรายชุดตรงกับลำดั�
   expect(page.url()).toContain(id);
 });
 
-test('กระดาษคำตอบ: A4 แนวนอน 2 แผ่น/หน้า ถอด QR ได้ครบทุกแผ่น ข้อมูลตรง และมุมดำอยู่ตำแหน่งที่กำหนด (§7.2)', async ({ page, browserName }, info) => {
+test('กระดาษคำตอบแบบค่าเริ่มต้น: 1 แผ่นต่อหน้า A4 แนวตั้ง ถอด QR ได้ทุกหน้า', async ({ page }, info) => {
   test.skip(info.project.name !== 'desktop', 'ตรวจ PDF ครั้งเดียวพอ');
   const id = await createExam(page);
   await page.goto(`/#/exams/${id}/print?doc=sheets`);
+  await expect(page.getByTestId('print-sheets')).toHaveAttribute('data-layout', 'a4');
+  await expect(page.getByTestId('print-sheets').locator('.sheet')).toHaveCount(7);
+  const pdf = await printPdf(page);
+  const pi = pdfInfo(tmpFile(pdf, 'sheets-a4.pdf'));
+  expect(pi.pages).toBe(7);
+  expect(Math.round(pi.wMm)).toBe(210);
+  expect(Math.round(pi.hMm)).toBe(297);
+  const dpi = 150, px = dpi / 25.4, k = 297 / 210;   // แบบกระดาษ A5 ขยายเต็ม A4 (สัดส่วนเท่ากัน)
+  const { pages } = rasterize(pdf, dpi);
+  pages.forEach((img, p) => {
+    const ox = (210 - 148 * k) / 2 * px;
+    const text = decodeQr(img, ox + (TPL.qr.x - 3) * k * px, (TPL.qr.y - 3) * k * px, (TPL.qr.size + 6) * k * px, (TPL.qr.size + 6) * k * px);
+    expect(text, `QR หน้า ${p + 1}`).not.toBeNull();
+  });
+});
+
+test('บอกจำนวนฉบับที่ต้องพิมพ์ของแต่ละชุด รวมเท่าจำนวนนักเรียน', async ({ page }) => {
+  const id = await createExam(page);
+  await page.goto(`/#/exams/${id}/print?doc=exam&set=1`);
+  const rows = page.getByTestId('copies').locator('li');
+  const n = await rows.count();
+  expect(n).toBeGreaterThan(0);
+  let total = 0;
+  for (let i = 0; i < n; i++) total += Number(await rows.nth(i).getAttribute('data-copies'));
+  expect(total).toBe(7);
+});
+
+test('ข้อสอบ: แบ่งหน้าเองตามความสูงจริง จำนวนหน้าบนจอ = จำนวนหน้า PDF ไม่มีหน้าว่าง', async ({ page }, info) => {
+  test.skip(info.project.name !== 'desktop', 'ตรวจ PDF ครั้งเดียวพอ');
+  const id = await createExam(page);
+  await page.goto(`/#/exams/${id}/print?doc=exam&set=1`);
+  const doc = page.getByTestId('print-exam');
+  await expect(doc).not.toHaveAttribute('data-pages', '0');
+  const n = Number(await doc.getAttribute('data-pages'));
+  await expect(doc.locator('.exam-page')).toHaveCount(n);
+  const pi = pdfInfo(tmpFile(await printPdf(page), 'exam-paged.pdf'));
+  expect(pi.pages).toBe(n);
+});
+
+test('กระดาษคำตอบ: A4 แนวนอน 2 แผ่น/หน้า ถอด QR ได้ครบทุกแผ่น ข้อมูลตรง และมุมดำอยู่ตำแหน่งที่กำหนด (§7.2)', async ({ page, browserName }, info) => {
+  test.skip(info.project.name !== 'desktop', 'ตรวจ PDF ครั้งเดียวพอ');
+  const id = await createExam(page);
+  await page.goto(`/#/exams/${id}/print?doc=sheets&sheet=duo`);
   await expect(page.getByTestId('print-sheets').locator('.sheet')).toHaveCount(7);
   const pdf = await printPdf(page);
   const pi = pdfInfo(tmpFile(pdf, 'sheets.pdf'));

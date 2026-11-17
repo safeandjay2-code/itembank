@@ -7,7 +7,7 @@ import type { ExamDetail } from '../../core/types';
 import { navigate, type Route } from '../../ui/router';
 import { useRefData } from '../core/useRefData';
 import { buildPrintDoc, type PrintDoc } from './model';
-import { ExamPrint, KeyPrint, SheetsPrint } from './PrintViews';
+import { ExamPrint, KeyPrint, SheetsPrint, type SheetLayout } from './PrintViews';
 import { buildExamDocx, buildKeyDocx, safeName, toBlob, type Rasterize } from './docx';
 import { sampleExam } from './sampleDoc';
 import './print.css';
@@ -60,6 +60,7 @@ export function PrintPage({ id, route }: { id: string | null; route: Route }) {
   const [saved, setSaved] = useState(false);
   const tab = (route.params.get('doc') as Tab) || 'exam';
   const setNo = Number(route.params.get('set') ?? 1);
+  const sheetLayout: SheetLayout = route.params.get('sheet') === 'duo' ? 'duo' : 'a4';
   const isSample = id === null;
 
   useEffect(() => {
@@ -153,6 +154,27 @@ export function PrintPage({ id, route }: { id: string | null; route: Route }) {
             {doc.sets.map((s) => <button key={s.setNo} aria-pressed={s.setNo === set.setNo} onClick={() => go({ set: s.setNo })}>ชุดที่ {s.setNo}</button>)}
           </div>
         )}
+        {tab === 'exam' && (
+          <div className="card copies" data-testid="copies">
+            <b>จำนวนที่ต้องพิมพ์ (นักเรียน {doc.seats.length} คน)</b>
+            <ul>
+              {doc.sets.map((s) => {
+                const seats = doc.seats.filter((x) => x.setNo === s.setNo).map((x) => x.seatNo);
+                return (
+                  <li key={s.setNo} data-set={s.setNo} data-copies={seats.length}>
+                    ชุดที่ {s.setNo}: <b>{seats.length} ฉบับ</b> <span className="sub">— เลขที่ {seats.length ? seats.join(', ') : '—'}</span>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
+        {tab === 'sheets' && (
+          <div className="tabs" role="group" aria-label="รูปแบบกระดาษคำตอบ">
+            <button aria-pressed={sheetLayout === 'a4'} onClick={() => go({ sheet: 'a4' })}>1 แผ่นต่อหน้า (A4 หรือย่อลง A5)</button>
+            <button aria-pressed={sheetLayout === 'duo'} onClick={() => go({ sheet: 'duo' })}>2 แผ่นต่อ A4 (ตัดครึ่ง)</button>
+          </div>
+        )}
         <div className="actions wrap">
           <button className="btn" onClick={() => window.print()}>พิมพ์ / บันทึก PDF</button>
           {tab === 'exam' && <button className="btn ghost" disabled={busy !== null} onClick={wordSet}>{busy === 'word' ? 'กำลังสร้าง…' : `Word ชุดที่ ${set.setNo}`}</button>}
@@ -161,14 +183,17 @@ export function PrintPage({ id, route }: { id: string | null; route: Route }) {
         </div>
         <p className="hint-line print-hint">
           {tab === 'sheets'
-            ? `กระดาษคำตอบ ${doc.seats.length} แผ่น (A4 แนวนอน ${Math.ceil(doc.seats.length / 2)} หน้า ตัดครึ่งได้ A5) — ตอนพิมพ์ให้ตั้ง "สเกล 100% / ขนาดจริง" ห้ามย่อหรือขยาย เพื่อให้ตรวจด้วยกล้องได้แม่นยำ`
+            ? (sheetLayout === 'a4'
+              ? `กระดาษคำตอบ ${doc.seats.length} แผ่น แผ่นละ 1 หน้า — พิมพ์ลง A4 ได้เลย หรือถ้าใช้กระดาษ A5 ให้เลือกขนาดกระดาษ A5 แล้วตั้งสเกล "พอดีกับหน้า (Fit)" สัดส่วนเท่ากันพอดี กล้องตรวจได้ทั้งสองขนาด`
+              : `กระดาษคำตอบ ${doc.seats.length} แผ่น (A4 แนวนอน ${Math.ceil(doc.seats.length / 2)} หน้า ตัดครึ่งได้ A5) — ตอนพิมพ์ให้ตั้ง "สเกล 100% / ขนาดจริง"`)
+            : tab === 'exam' ? 'หน้าที่เห็นด้านล่าง = หน้าที่จะพิมพ์ออกจริง · กด "พิมพ์ / บันทึก PDF" · กระดาษ A4 · สเกล 100% · ระบบใช้ฟอนต์ TH Sarabun New ถ้าเครื่องมีติดตั้ง'
             : 'บันทึกเป็น PDF: กด "พิมพ์ / บันทึก PDF" แล้วเลือกปลายทาง "บันทึกเป็น PDF" · กระดาษ A4 · ระบบใช้ฟอนต์ TH Sarabun New ถ้าเครื่องมีติดตั้ง'}
         </p>
       </div>
       <div className="print-stage" data-testid="print-stage">
         {tab === 'exam' && <ExamPrint doc={doc} set={set} />}
         {tab === 'key' && <KeyPrint doc={doc} />}
-        {tab === 'sheets' && <SheetsPrint doc={doc} />}
+        {tab === 'sheets' && <SheetsPrint doc={doc} layout={sheetLayout} />}
       </div>
     </>
   );

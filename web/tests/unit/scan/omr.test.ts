@@ -99,7 +99,7 @@ describe('เรขาคณิต', () => {
 });
 
 describe('ภาพกำกวม → remark (ไม่ตอบผิดเงียบ ๆ)', () => {
-  test('ฝนจาง: ใช้คำตอบที่อ่านได้ และขึ้น remark เป็นส่วนใหญ่', () => {
+  test('ฝนจางทั้งแผ่น: อ่านถูกทุกข้อ และไม่ขึ้น remark พร่ำเพรื่อ (เทียบกับรอยฝนของแผ่นเอง)', () => {
     let flagged = 0, total = 0;
     for (const [i, spec] of [{}, { light: 0.45, noise: 5 }, { shadow: 0.5, rotateDeg: 4 }].entries()) {
       const marks: Mark[] = Array.from({ length: 30 }, (_, k) => ({ item: k + 1, choice: 1 + ((k * 3 + i) % 4), kind: 'faint' as const }));
@@ -113,10 +113,10 @@ describe('ภาพกำกวม → remark (ไม่ตอบผิดเง
         if (it.ambiguous.includes(k + 1)) flagged++;
       });
     }
-    expect(flagged / total).toBeGreaterThan(0.6);
+    expect(flagged / total).toBeLessThan(0.2);
   });
 
-  test('ลบไม่สะอาด + ฝนใหม่: เลือกรอยเข้ม และขึ้น remark เป็นส่วนใหญ่', () => {
+  test('ลบไม่สะอาด + ฝนใหม่: เลือกรอยเข้มทุกข้อ (ไม่นับเป็นฝนหลายช่อง)', () => {
     let flagged = 0, total = 0;
     for (const [i, spec] of [{}, { rotateDeg: -6, perspective: 0.03 }, { light: 0.5, noise: 4 }].entries()) {
       const marks: Mark[] = [];
@@ -134,7 +134,7 @@ describe('ภาพกำกวม → remark (ไม่ตอบผิดเง
         if (it.ambiguous.includes(k)) flagged++;
       }
     }
-    expect(flagged / total).toBeGreaterThan(0.7);
+    expect(flagged / total).toBeLessThan(0.5);
   });
 });
 
@@ -209,7 +209,10 @@ describe('สแกนเนอร์/ไฟล์ PDF', () => {
 test('ค่าตั้งต้นของเกณฑ์อยู่ในช่วงที่ตั้งค่าได้ (data/settings.default.json)', async () => {
   const settings = (await import('../../../../data/settings.default.json')).default as Array<{ key: string; value: unknown }>;
   const get = (k: string) => settings.find((s) => s.key === k)?.value;
-  expect(get('scan.fill_threshold')).toBe(DEFAULT_SCAN.fill);
-  expect(get('scan.blank_threshold')).toBe(DEFAULT_SCAN.blank);
-  expect(get('scan.multi_gap')).toBe(DEFAULT_SCAN.multiGap);
+  expect(get('scan.mark_floor')).toBe(DEFAULT_SCAN.markFloor);
+  expect(get('scan.mark_ratio')).toBe(DEFAULT_SCAN.markRatio);
+  expect(get('scan.multi_ratio')).toBe(DEFAULT_SCAN.multiRatio);
+  expect(get('scan.residue_ratio')).toBe(DEFAULT_SCAN.residueRatio);
+  expect(get('scan.faint_band')).toBe(DEFAULT_SCAN.faintBand);
+  expect(get('scan.fill_threshold')).toBeUndefined();
 });

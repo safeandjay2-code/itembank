@@ -9,7 +9,8 @@
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 DB=itembank_staging
-LIVE_LAST=${LIVE_LAST:-0012}   # migration ล่าสุดที่ติดตั้งบนระบบจริงแล้ว — แก้เลขนี้ทุกครั้งที่ปล่อยขึ้นระบบจริง
+LIVE_LAST=${LIVE_LAST:-0013}   # migration ล่าสุดที่ติดตั้งบนระบบจริงแล้ว — แก้เลขนี้ทุกครั้งที่ปล่อยขึ้นระบบจริง
+#   (0013 ติดตั้งบนระบบจริงด้วยมือ 18 พ.ย. 2569 — แก้สมุดคะแนนเปิดไม่ได้)
 #   (ปล่อย 0011+0012 ขึ้นระบบจริง 22 ต.ค. 2569 · ซ้อมรอบนั้นซ้ำได้ด้วย LIVE_LAST=0010 bash tests/db/staging.sh upgrade)
 PSQL=${PSQL:-"psql -v ON_ERROR_STOP=1 -X -q"}
 dropdb --if-exists $DB
@@ -42,7 +43,7 @@ if [[ "${1:-}" == "upgrade" ]]; then
       echo "  รันซ้ำ: ถูกปฏิเสธ (ติดตั้งไปแล้ว) ✓"
     fi
   done
-  $PSQL -d $DB -f tests/db/staging_after.sql 2>&1 | grep -E "PASS|FAIL|ERROR|LINE" | sed -E 's/^psql:[^ ]+ (NOTICE|ERROR): +/\1 /'
+  $PSQL -d $DB -v live_last=$LIVE_LAST -f tests/db/staging_after.sql 2>&1 | grep -E "PASS|FAIL|ERROR|LINE" | sed -E 's/^psql:[^ ]+ (NOTICE|ERROR): +/\1 /'
   if [ "${PIPESTATUS[0]}" -ne 0 ]; then echo "ผิดพลาด: ตรวจหลังติดตั้งไม่ผ่าน"; exit 1; fi
   echo "หลังติดตั้ง: $($PSQL -t -A -d $DB -c "select string_agg(version, ',' order by version) from public.app_migrations") · ข้อหุ่น $($PSQL -t -A -d $DB -c "select count(*) from public.items")"
 fi

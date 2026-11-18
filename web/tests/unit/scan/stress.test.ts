@@ -1,18 +1,20 @@
 // ทดสอบหนัก (ไม่รันใน CI ตามปกติ): SCAN_STRESS=200 npx vitest run tests/unit/scan/stress.test.ts
+// เด็กฝนเบาทั้งแผ่น (แบบกระดาษจริง ป.5): SCAN_STRESS=200 SCAN_STRESS_KINDS=faint,scribble npx vitest run tests/unit/scan/stress.test.ts
 import { test, expect } from 'vitest';
-import { photograph, randomMarks, renderSheet } from './synth';
+import { photograph, randomMarks, renderSheet, type MarkKind } from './synth';
 import { readSheet } from '../../../src/modules/scan/omr';
 import { interpret } from '../../../src/modules/scan/grade';
 import { makeRng } from '../../../src/modules/assembly/rng';
 
 const N = Number(process.env.SCAN_STRESS ?? 0);
+const KINDS = process.env.SCAN_STRESS_KINDS?.split(',') as MarkKind[] | undefined;
 test.skipIf(!N)('stress: ภาพสุ่มเงื่อนไข — ไม่มีคำตอบผิดแบบเงียบ', () => {
   const rnd = makeRng(2026);
   let fails = 0, silentWrong = 0, spurious = 0, items = 0;
   const uuid = () => 'xxxxxxxx-xxxx-4xxx-8xxx-xxxxxxxxxxxx'.replace(/x/g, () => Math.floor(rnd() * 16).toString(16));
   for (let k = 0; k < N; k++) {
     const itemCount = 10 + Math.floor(rnd() * 36);
-    const { marks, expected } = randomMarks(itemCount, 1000 + k, { blank: 0.08, multi: 0.06 });
+    const { marks, expected } = randomMarks(itemCount, 1000 + k, { blank: 0.08, multi: 0.06, kinds: KINDS });
     const spec = {
       rotateDeg: (rnd() - 0.5) * 30 + (rnd() < 0.15 ? 180 : 0), perspective: rnd() * 0.05, fill: 0.6 + rnd() * 0.25,
       light: rnd() < 0.3 ? 0.35 + rnd() * 0.3 : 1, shadow: rnd() < 0.4 ? rnd() * 0.6 : 0, gradient: rnd() * 0.4,

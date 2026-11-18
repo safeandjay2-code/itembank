@@ -26,9 +26,10 @@ begin
 end $$;
 
 -- ===================== ก) ข้อมูลเดิมไม่เปลี่ยน =====================
-select pg_temp.ok((select migrations from stg.counts) = '0001,0002,0003,0004,0005,0006,0007,0008,0009,0010,S001'
+select pg_temp.ok((select bool_and(v <= :'live_last' or v = 'S001') from stg.counts, unnest(string_to_array(migrations, ',')) v)
+                  and (select count(*) from app_migrations) > (select array_length(string_to_array(migrations, ','), 1) from stg.counts)
                   and exists (select 1 from app_migrations where version = '0011') and exists (select 1 from app_migrations where version = '0012'),
-  'ก่อนติดตั้ง = ระบบจริง (0001–0010) · หลังติดตั้งมี 0011, 0012');
+  'ก่อนติดตั้ง = ระบบจริง (ถึง ' || :'live_last' || ') · หลังติดตั้งมี migration ใหม่ครบ');
 select pg_temp.ok((select items from stg.counts) = (select count(*) from items)
                   and (select stat_rounds from stg.counts) = (select count(*) from item_stat_rounds)
                   and (select exams from stg.counts) = (select count(*) from exams),

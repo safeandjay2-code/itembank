@@ -57,7 +57,8 @@ $$;
 set client_min_messages = notice;
 
 select pg_temp.ok(exists (select 1 from app_migrations where version = '0008'), 'บันทึก migration 0008');
-select pg_temp.ok((select count(*) from app_settings where key like 'scan.%') = 6, 'ตั้งค่าการตรวจ 6 ค่า');
+select pg_temp.ok((select count(*) from app_settings where key like 'scan.%') = 8, 'ตั้งค่าการตรวจ 8 ค่า (0014: เกณฑ์ปรับตามแผ่น 5 + แจกผิดชุด 3)');
+select pg_temp.ok(not exists (select 1 from app_settings where key in ('scan.fill_threshold','scan.blank_threshold','scan.multi_gap')), 'ไม่มีค่าเกณฑ์ตายตัวเดิม (0014 ลบแล้ว)');
 
 set role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);

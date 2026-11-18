@@ -13,14 +13,14 @@ describe('ตีความรอยฝน (§8.3)', () => {
     row(E, E, E, E),          // 2 ไม่ฝน → null
     row(E, 0.7, 0.68, E),     // 3 ฝน 2 ช่อง → multi
     row(E, E, 0.27, E),       // 4 จาง → 3 + remark
-    row(0.8, 0.2, E, E),      // 5 ฝนชัด + ลบไม่สะอาด → 1 + remark
-    row(0.9, E, 0.4, E),      // 6 ฝน 2 ช่องแต่ต่างกันมาก → 1 + remark (น่าจะลบไม่สะอาด)
+    row(0.8, 0.2, E, E),      // 5 ฝนชัด + รอยเทาต่ำกว่าเกณฑ์ของแผ่น → 1 (ไม่ต้อง remark)
+    row(0.9, E, 0.4, E),      // 6 ช่องที่ 2 เข้มเกินเกณฑ์แต่ไม่ถึงครึ่งของช่องเข้มสุด → 1 + remark (น่าจะลบไม่สะอาด)
     row(E, E, E, 0.55),       // 7 → 4
     row(0.7, 0.7, 0.7, 0.7),  // 8 ฝนทุกช่อง → multi
   ];
   const it = interpret(sheet, sheet.length);
   test('คำตอบ', () => expect(it.answers).toEqual([1, null, 'multi', 3, 1, 1, 4, 'multi']));
-  test('ข้อกำกวมขึ้น remark เท่านั้น', () => expect(it.ambiguous).toEqual([4, 5, 6]));
+  test('ข้อกำกวมขึ้น remark เท่านั้น', () => expect(it.ambiguous).toEqual([4, 6]));
   test('ระดับพื้นหลังมาจากวงว่าง', () => expect(it.baseline).toBeCloseTo(E, 2));
   test('อ่านเฉพาะข้อ 1..จำนวนข้อ', () => expect(interpret(sheet, 3).answers).toEqual([1, null, 'multi']));
   test('ฝน 2 ช่อง/ไม่ฝน = 0 คะแนน', () => {
@@ -28,11 +28,26 @@ describe('ตีความรอยฝน (§8.3)', () => {
     expect(score(it.answers, [1, 1, 2, 3, 1, 1, 4, 1])).toBe(5);
   });
   test('ค่าเกณฑ์อ่านจากตารางตั้งค่าได้', () => {
-    const c = scanConfigFromSettings({ 'scan.fill_threshold': 0.5, 'scan.wrong_set_min_items': 5 });
-    expect(c.fill).toBe(0.5);
+    const c = scanConfigFromSettings({ 'scan.mark_ratio': 0.4, 'scan.wrong_set_min_items': 5 });
+    expect(c.markRatio).toBe(0.4);
     expect(c.wrongSetMinItems).toBe(5);
-    expect(c.blank).toBe(DEFAULT_SCAN.blank);
+    expect(c.markFloor).toBe(DEFAULT_SCAN.markFloor);
   });
+});
+
+describe('เกณฑ์ปรับตามแผ่น', () => {
+  // เด็กฝนเบาทั้งแผ่น (รอยฝน ~0.2) วงว่าง ~0.02 — กติกาเดิมที่ใช้เกณฑ์ตายตัว 0.34 ขึ้น remark ทุกข้อ
+  const L = 0.02;
+  const light = [row(0.2, L, L, L), row(L, 0.18, L, L), row(L, L, 0.22, L), row(L, L, L, 0.15), row(L, 0.16, 0.2, L), row(L, L, L, L), row(0.07, L, L, L)];
+  const it = interpret(light, light.length);
+  test('ฝนเบาแต่ชัดกว่าวงว่าง → อ่านได้ ไม่ขึ้น remark', () => expect(it.answers.slice(0, 4)).toEqual([1, 2, 3, 4]));
+  test('ฝน 2 ช่องเข้มพอกัน → multi', () => expect(it.answers[4]).toBe('multi'));
+  test('ไม่ฝน → null', () => expect(it.answers[5]).toBeNull());
+  test('จางมากใกล้เกณฑ์ → อ่านได้ + remark', () => {
+    expect(it.answers[6]).toBe(1);
+    expect(it.ambiguous).toEqual([7]);
+  });
+  test('แผ่นว่างทั้งแผ่น → ไม่ฝนทุกข้อ', () => expect(interpret([row(L, L, L, L), row(L, L, L, L)], 2).answers).toEqual([null, null]));
 });
 
 describe('ตรวจจับแจกผิดชุด', () => {

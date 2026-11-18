@@ -5,6 +5,7 @@ set -euo pipefail
 cd "$(dirname "$0")/../.."
 DB=itembank_test
 PSQL=${PSQL:-"psql -v ON_ERROR_STOP=1 -X -q"}
+python3 tests/db/check_safeupdate.py
 dropdb --if-exists $DB
 createdb $DB
 $PSQL -d $DB -f tests/db/supabase_shim.sql >/dev/null

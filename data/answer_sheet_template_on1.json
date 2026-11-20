@@ -1,0 +1,50 @@
+{
+  "id": "ON1",
+  "version": 1,
+  "name_th": "กระดาษคำตอบ O-NET A4 รุ่นที่ 1 (เลียนแบบกระดาษคำตอบจริง สทศ. 2568)",
+  "units": "mm",
+  "paper": { "size": "A4", "width": 210, "height": 297, "orientation": "portrait" },
+  "corner_marks": {
+    "size": 7,
+    "top_left": [[10, 10], [193, 10], [10, 280], [193, 280]],
+    "order": ["tl", "tr", "bl", "br"]
+  },
+  "qr": {
+    "x": 160, "y": 19, "size": 30, "ecc": "M",
+    "payload": "ON1:<set_code>:<template_version>",
+    "payload_note": "บอกเฉพาะรหัสชุด (S01…) + รุ่นแบบกระดาษ — ไม่มีเลขที่ ไม่มีเฉลย กระดาษทุกแผ่นของชุดเดียวกันเหมือนกัน (SPEC-ONET §2, §5)"
+  },
+  "header": { "x": 20, "y": 12, "width": 135, "center_x": 87.5 },
+  "set_code": {
+    "x": 20, "y": 54, "w": 170, "h": 17, "header_h": 6,
+    "codes": [100, 200, 300, 400, 500, 600],
+    "bubble_dx": 8, "bubble_y": 65.5, "radius": 2.3,
+    "note": "ช่องที่ k (0–5) = รหัส codes[k] · กว้างช่องละ w/6 · ระบบเชื่อ QR เป็นหลัก ระบายไม่ตรง → เตือนเท่านั้น"
+  },
+  "digit_block": {
+    "h": 81, "header_h": 7, "label_y1": 10.8, "label_y2": 14.3,
+    "write_y": 16, "write_h": 7, "write_w": 7,
+    "first_bubble_dy": 28.5, "pitch_y": 5.4, "radius": 2.1,
+    "note": "บล็อกระบายตัวเลข: หัว → ป้ายหลัก → ช่องเขียน → วง 0–9 เรียงลงแนวตั้ง (ใช้ทั้งเลขที่และตอนที่ 2)"
+  },
+  "seat": {
+    "x": 20, "y": 76, "w": 26, "title": "เลขที่",
+    "col_dx": [8.5, 17.5], "labels": [["หลัก", "สิบ"], ["หลัก", "หน่วย"]]
+  },
+  "mcq": {
+    "first_item": 1, "last_item": 11, "choices": 4,
+    "box": { "x": 52, "y": 90, "w": 138, "h": 42, "header_h": 7 },
+    "columns": 3, "rows": 4,
+    "column_x": [52, 98, 144],
+    "number_dx": 11, "first_bubble_dx": 16, "bubble_pitch_x": 6.8,
+    "first_row_y": 104, "row_pitch_y": 8, "radius": 2.3,
+    "order": "column-major: ข้อ 1–4 คอลัมน์ 1, 5–8 คอลัมน์ 2, 9–11 คอลัมน์ 3"
+  },
+  "numeric": {
+    "items": [12, 13, 14, 15], "digits": 3,
+    "box": { "x": 20, "y": 176, "w": 170, "h": 94, "header_h": 7 },
+    "block_x": [30, 70, 110, 150], "block_y": 186, "block_w": 30,
+    "col_dx": [6, 15, 24], "labels": [["หลัก", "ร้อย"], ["หลัก", "สิบ"], ["หลัก", "หน่วย"]]
+  },
+  "credit": { "y": 276.5 }
+}

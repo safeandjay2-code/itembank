@@ -1,9 +1,9 @@
 # ทดสอบทั้งระบบทุกครั้งที่ push แล้ว deploy หน้าเว็บขึ้น GitHub Pages เมื่อผ่านเท่านั้น
-# กิ่ง onestop = สำเนาทดสอบระบบ One Stop: ทดสอบอย่างเดียว ไม่ deploy (เว็บจริงมาจาก main เท่านั้น)
+# กิ่ง onestop / onet = สำเนาทดสอบ (One Stop / ห้อง O-NET): ทดสอบอย่างเดียว ไม่ deploy (เว็บจริงมาจาก main เท่านั้น)
 name: test-and-deploy
 on:
   push:
-    branches: [main, onestop]
+    branches: [main, onestop, onet]
   workflow_dispatch:
 permissions:
   contents: read

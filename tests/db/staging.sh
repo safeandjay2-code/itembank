@@ -45,5 +45,9 @@ if [[ "${1:-}" == "upgrade" ]]; then
   done
   $PSQL -d $DB -v live_last=$LIVE_LAST -f tests/db/staging_after.sql 2>&1 | grep -E "PASS|FAIL|ERROR|LINE" | sed -E 's/^psql:[^ ]+ (NOTICE|ERROR): +/\1 /'
   if [ "${PIPESTATUS[0]}" -ne 0 ]; then echo "ผิดพลาด: ตรวจหลังติดตั้งไม่ผ่าน"; exit 1; fi
+  if [[ "$LIVE_LAST" < "0015" ]]; then
+    $PSQL -d $DB -f tests/db/staging_after_onet.sql 2>&1 | grep -E "PASS|FAIL|ERROR|LINE" | sed -E 's/^psql:[^ ]+ (NOTICE|ERROR): +/\1 /'
+    if [ "${PIPESTATUS[0]}" -ne 0 ]; then echo "ผิดพลาด: ตรวจหลังติดตั้ง O-NET ไม่ผ่าน"; exit 1; fi
+  fi
   echo "หลังติดตั้ง: $($PSQL -t -A -d $DB -c "select string_agg(version, ',' order by version) from public.app_migrations") · ข้อหุ่น $($PSQL -t -A -d $DB -c "select count(*) from public.items")"
 fi

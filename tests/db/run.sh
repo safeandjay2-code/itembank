@@ -15,7 +15,9 @@ for f in supabase/migrations/*.sql; do
 done
 echo "seed: S001_reference_data.sql"
 $PSQL -d $DB -f supabase/seed/S001_reference_data.sql >/dev/null
-for t in tests/db/test_*.sql; do
+# ทดสอบห้อง O-NET ก่อน (ใช้ค่าเริ่มต้นจาก migration: ผู้ใช้ใหม่ = onet)
+# จากนั้นตั้งผู้ใช้ใหม่ = teacher ให้ทดสอบเฟสเดิมทำงานแบบก่อนมีห้อง O-NET
+for t in tests/db/test_onet*.sql tests/db/fixtures/legacy_new_user_role.sql tests/db/test_phase*.sql; do
   echo "test: $t"
   # แสดงเฉพาะผลทดสอบ (PASS/FAIL/ERROR)
   $PSQL -t -d $DB -f "$t" 2>&1 | grep -E "PASS|FAIL|ERROR|PASSED" | sed -E 's/^psql:[^ ]+ (NOTICE|ERROR): +/\1 /'

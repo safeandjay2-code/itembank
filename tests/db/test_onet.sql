@@ -167,7 +167,7 @@ select pg_temp.ok((select count(*) from onet_rooms) = 0 and (select count(*) fro
 select pg_temp.ok(public.onet_room_list() = '[]'::jsonb, 'รายการห้องของครูอื่นว่าง');
 
 -- ---------- ซ) ไฟล์ใน Storage ----------
-select pg_temp.ok((select string_agg(name, ' ' order by name) from storage.objects) = 'S91/exam.pdf common/guide.pdf',
+select pg_temp.ok((select string_agg(name, ' ' order by name collate "C") from storage.objects) = 'S91/exam.pdf common/guide.pdf',
   'ไฟล์: ยังไม่ปลดล็อกเห็นเฉพาะชุดฟรี + common');
 select pg_temp.fails($q$insert into storage.objects(bucket_id, name) values ('onet', 'S93/x.pdf')$q$, 'row-level security', 'onet อัปโหลดไฟล์ไม่ได้');
 

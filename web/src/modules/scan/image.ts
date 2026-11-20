@@ -37,6 +37,24 @@ export function downscale(g: Gray, f: number): Gray {
   return { w, h, d };
 }
 
+/** ขยายภาพ s เท่า (bilinear, อ้างจุดกึ่งกลางพิกเซล: พิกเซล x ของภาพใหม่ = (x + 0.5) / s − 0.5 ของภาพเดิม)
+ *  ใช้ช่วยอ่าน QR ที่เล็ก (โมดูล ~3 พิกเซล) เช่น กระดาษ A4 ที่ถ่ายไกล */
+export function upscale(g: Gray, s: number): Gray {
+  const w = Math.round(g.w * s), h = Math.round(g.h * s);
+  const d = new Uint8Array(w * h);
+  for (let y = 0; y < h; y++) {
+    const sy = Math.min(g.h - 1, Math.max(0, (y + 0.5) / s - 0.5));
+    const y0 = Math.min(g.h - 2, Math.floor(sy)), fy = sy - y0;
+    for (let x = 0; x < w; x++) {
+      const sx = Math.min(g.w - 1, Math.max(0, (x + 0.5) / s - 0.5));
+      const x0 = Math.min(g.w - 2, Math.floor(sx)), fx = sx - x0;
+      const i = y0 * g.w + x0;
+      d[y * w + x] = Math.round((g.d[i] * (1 - fx) + g.d[i + 1] * fx) * (1 - fy) + (g.d[i + g.w] * (1 - fx) + g.d[i + g.w + 1] * fx) * fy);
+    }
+  }
+  return { w, h, d };
+}
+
 /** ตัดภาพบางส่วน (ใช้แยกกระดาษ 2 แผ่นบน A4 แนวนอน) */
 export function crop(g: Gray, x: number, y: number, w: number, h: number): Gray {
   x = Math.max(0, Math.floor(x)); y = Math.max(0, Math.floor(y));

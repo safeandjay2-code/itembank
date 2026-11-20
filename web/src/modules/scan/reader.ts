@@ -1,5 +1,5 @@
 // ตัวเรียกเครื่องอ่าน: ส่งภาพให้ Web Worker (ถ้าใช้ไม่ได้ ประมวลผลบนเธรดหลักแทน)
-import type { ReadResult } from './omr';
+import type { OnetReadResult, ReadResult } from './omr';
 import { handleReadRequest, type ReadRequest, type ReadResponse } from './readCore';
 
 export class SheetReader {
@@ -28,15 +28,17 @@ export class SheetReader {
   }
 
   /** อ่านภาพ 1 ภาพ — ข้อมูลภาพถูกโอนให้ worker แล้วทิ้ง (ไม่เก็บ ไม่ส่งออกนอกเครื่อง) */
-  read(img: ImageData, mode: ReadRequest['mode'], frame = 0): Promise<{ results: ReadResult[]; ms: number }> {
+  async read(img: ImageData, mode: 'camera' | 'upload', frame = 0): Promise<{ results: ReadResult[]; ms: number }> {
+    const r = await this.readRaw(img, mode, frame);
+    return r ? { results: r.results, ms: r.ms } : { results: [], ms: 0 };
+  }
+
+  readRaw(img: ImageData, mode: ReadRequest['mode'], frame = 0): Promise<ReadResponse | null> {
     const id = ++this.seq;
     const req: ReadRequest = { id, rgba: img.data.buffer as ArrayBuffer, w: img.width, h: img.height, mode, frame };
-    if (!this.worker) {
-      const r = handleReadRequest(req);
-      return Promise.resolve({ results: r.results, ms: r.ms });
-    }
+    if (!this.worker) return Promise.resolve(handleReadRequest(req));
     return new Promise((resolve) => {
-      this.pending.set(id, (r) => resolve(r ? { results: r.results, ms: r.ms } : { results: [], ms: 0 }));
+      this.pending.set(id, resolve);
       this.worker!.postMessage(req, [req.rgba]);
     });
   }
@@ -47,4 +49,10 @@ export class SheetReader {
     this.pending.forEach((cb) => cb(null));
     this.pending.clear();
   }
+}
+
+/** อ่านกระดาษ O-NET (ON1) ผ่าน SheetReader เดิม (worker เดียวกัน) */
+export async function readOnet(reader: SheetReader, img: ImageData, mode: 'onet-camera' | 'onet-upload', frame = 0): Promise<{ result: OnetReadResult | null; ms: number }> {
+  const r = await reader.readRaw(img, mode, frame);
+  return { result: r?.onet?.[0] ?? null, ms: r?.ms ?? 0 };
 }

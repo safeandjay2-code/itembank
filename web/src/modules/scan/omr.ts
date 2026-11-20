@@ -3,11 +3,12 @@
 //          → วัดความเข้มของวงกลมทุกวงตามแบบกระดาษ (answer_sheet_template_vN.json)
 // ผลลัพธ์เป็น "ความเข้ม" ดิบ 0–1 ต่อวง การตีความ (ฝน/ไม่ฝน/กำกวม) อยู่ที่ grade.ts
 import jsQR from 'jsqr';
-import { getTemplate, TEMPLATES, bubbleCenter, parseQrPayload, type QrData, type SheetTemplate } from '../print/template';
+import { getTemplate, TEMPLATES, bubbleCenter, parseQrPayload, type QrData } from '../print/template';
+import { ONET_TEMPLATES, on1AllBubbles, parseOnetQrPayload, type OnetQrData } from '../print/onetTemplate';
 import { affineFromPoints, apply, fromPoints, localScale, type H, type Pt } from './homography';
-import { crop, downscale, grayToRgba, otsu, percentile, sample, sharpen, type Gray } from './image';
+import { crop, downscale, grayToRgba, otsu, percentile, sample, sharpen, upscale, type Gray } from './image';
 
-export type ReadFailReason = 'no_qr' | 'not_our_sheet' | 'unknown_template' | 'corners' | 'low_contrast';
+export type ReadFailReason = 'no_qr' | 'not_our_sheet' | 'unknown_template' | 'corners' | 'low_contrast' | 'onet_sheet' | 'not_onet_sheet';
 
 export const FAIL_TH: Record<ReadFailReason, string> = {
   no_qr: 'ยังหา QR ไม่เจอ — ให้เห็นกระดาษทั้งแผ่นและถือนิ่ง ๆ',
@@ -15,6 +16,8 @@ export const FAIL_TH: Record<ReadFailReason, string> = {
   unknown_template: 'ไม่รู้จักรุ่นแบบกระดาษคำตอบ',
   corners: 'หามุมดำไม่ครบ 4 มุม — ให้เห็นมุมกระดาษทั้ง 4 มุม',
   low_contrast: 'ภาพมืดหรือเบลอเกินไป — เพิ่มแสงหรือถือให้นิ่ง',
+  onet_sheet: 'นี่คือกระดาษคำตอบ O-NET — ให้สแกนในห้อง O-NET',
+  not_onet_sheet: 'นี่คือกระดาษคำตอบของคลังข้อสอบ ไม่ใช่กระดาษคำตอบ O-NET',
 };
 
 export interface SheetReading {
@@ -38,12 +41,44 @@ export interface SheetReading {
 export interface ReadFailure { ok: false; reason: ReadFailReason; message: string; qr?: QrData }
 export type ReadResult = SheetReading | ReadFailure;
 
-const fail = (reason: ReadFailReason, qr?: QrData): ReadFailure => ({ ok: false, reason, message: FAIL_TH[reason], qr });
+/** ผลอ่านกระดาษคำตอบ O-NET (ON1) — ความเข้มดิบรายวงตามชื่อวงใน on1AllBubbles (set:100, q1:2, seat:c0:7, q12:c2:5 …)
+ *  การตีความอยู่ที่ onetGrade.ts */
+export interface OnetSheetReading {
+  ok: true;
+  qr: OnetQrData;
+  corners: Pt[];
+  homography: H;
+  darkness: Record<string, number>;
+  quality: SheetReading['quality'];
+}
+export interface OnetReadFailure { ok: false; reason: ReadFailReason; message: string; qr?: OnetQrData }
+export type OnetReadResult = OnetSheetReading | OnetReadFailure;
 
-interface QrHit { text: string; version: number; points: Array<{ mm: Pt; px: Pt }> }
+const fail = (reason: ReadFailReason, qr?: QrData): ReadFailure => ({ ok: false, reason, message: FAIL_TH[reason], qr });
+const failOnet = (reason: ReadFailReason, qr?: OnetQrData): OnetReadFailure => ({ ok: false, reason, message: FAIL_TH[reason], qr });
+
+/** ส่วนของแบบกระดาษที่ใช้หาตำแหน่งกระดาษ (เหมือนกันทั้งแบบระบบหลักและ ON1) */
+interface SheetLayout {
+  paper: { width: number; height: number };
+  qr: { x: number; y: number; size: number };
+  corner_marks: { size: number; top_left: number[][] };
+}
+
+type ParsedQr = { kind: 'ib'; qr: QrData; layout: SheetLayout | null } | { kind: 'onet'; qr: OnetQrData; layout: SheetLayout | null };
+
+interface QrHit { text: string; version: number; points: Array<{ mm: Pt; px: Pt }>; parsed: ParsedQr }
+
+/** แยกชนิด QR: ระบบหลัก (IB1/IB2) หรือ O-NET (ON1) */
+function parseAnyQr(text: string): ParsedQr | null {
+  const ib = parseQrPayload(text);
+  if (ib) return { kind: 'ib', qr: ib, layout: TEMPLATES[ib.template] ?? null };
+  const on = parseOnetQrPayload(text);
+  if (on) return { kind: 'onet', qr: on, layout: ONET_TEMPLATES[on.template] ?? null };
+  return null;
+}
 
 /** พิกัด มม. ของจุดอ้างอิงใน QR (มุมสัญลักษณ์ + จุดศูนย์กลาง finder) ตามวิธีวาดใน answerSheetSvg.qrPath */
-function qrGeometry(t: SheetTemplate, version: number) {
+function qrGeometry(t: SheetLayout, version: number) {
   const n = 17 + 4 * version;
   const m = t.qr.size / (n + 8);
   const at = (cx: number, cy: number): Pt => ({ x: t.qr.x + (4 + cx) * m, y: t.qr.y + (4 + cy) * m });
@@ -68,20 +103,22 @@ export function qrFactors(w: number, h: number, targets: number[] = [1000, 1400,
 }
 
 /** อ่าน QR — ลองหลายขนาดจนกว่าจะเจอ (sharpen = ลองภาพที่เพิ่มความคมด้วย สำหรับภาพเบลอ) */
-function findQr(g: Gray, factors: number[], sharpenToo: boolean): { hit: QrHit | null; raw: string | null } {
+function findQr(g: Gray, factors: number[], sharpenToo: boolean, upscales: number[] = []): { hit: QrHit | null; raw: string | null } {
   const tries: Array<{ f: number; sharp: boolean }> = factors.map((f) => ({ f, sharp: false }));
   if (sharpenToo) tries.push(...factors.filter((f) => f < 2.2).map((f) => ({ f, sharp: true })));
+  // ขยายภาพ (f < 1) — ลองท้ายสุด เฉพาะเมื่อขอ (กระดาษ O-NET A4 ที่ QR เล็กในภาพ)
+  for (const u of upscales) tries.push({ f: 1 / u, sharp: false }, { f: 1 / u, sharp: true });
   for (const { f, sharp } of tries) {
-    const s = sharp ? sharpen(downscale(g, f), 2, 2) : downscale(g, f);
+    const base = f < 1 ? upscale(g, 1 / f) : downscale(g, f);
+    const s = sharp ? sharpen(base, 2, 2) : base;
     const r = jsQR(grayToRgba(s), s.w, s.h, { inversionAttempts: 'dontInvert' });
     if (!r) continue;
-    const parsed = parseQrPayload(r.data);
+    const parsed = parseAnyQr(r.data);
     if (!parsed) return { hit: null, raw: r.data };
-    const tpl = TEMPLATES[parsed.template];
-    const geo = tpl ? qrGeometry(tpl, r.version) : null;
+    const geo = parsed.layout ? qrGeometry(parsed.layout, r.version) : null;
     // พิกัดใน jsQR อ้างจุดกึ่งกลางพิกเซล → แปลงกลับเป็นภาพเต็ม
     const points = geo ? QR_KEYS.map((k) => ({ mm: geo[k], px: { x: ((r.location as any)[k].x + 0.5) * f - 0.5, y: ((r.location as any)[k].y + 0.5) * f - 0.5 } })) : [];
-    return { hit: { text: r.data, version: r.version, points }, raw: r.data };
+    return { hit: { text: r.data, version: r.version, points, parsed }, raw: r.data };
   }
   return { hit: null, raw: null };
 }
@@ -244,19 +281,17 @@ export interface ReadOptions {
   qrFactors?: number[];
   /** ลองภาพเพิ่มความคมเมื่ออ่าน QR ไม่ได้ (ค่าเริ่มต้น: ลองเมื่อไม่ได้กำหนด qrFactors เช่น โหมดอัปโหลด) */
   sharpen?: boolean;
+  /** ตัวคูณขยายภาพที่จะลองอ่าน QR เป็นทางสุดท้าย (ตัวอ่าน O-NET เท่านั้น · ค่าเริ่มต้น: ไม่ลอง) */
+  qrUpscales?: number[];
 }
 
-/** อ่านกระดาษคำตอบ 1 แผ่นจากภาพระดับเทา */
-export function readSheet(g: Gray, opts: ReadOptions = {}): ReadResult {
-  const { hit, raw } = findQr(g, opts.qrFactors ?? qrFactors(g.w, g.h), opts.sharpen ?? !opts.qrFactors);
-  if (!hit) return fail(raw ? 'not_our_sheet' : 'no_qr');
-  const qr = parseQrPayload(hit.text)!;
-  if (!TEMPLATES[qr.template]) return fail('unknown_template', qr);
-  const t = getTemplate(qr.template);
+interface Located { corners: Pt[]; H: H; scale: number; contrast: number; fitErrorMm: number }
 
+/** หาตำแหน่งกระดาษจาก QR + มุมดำ 4 มุม (ใช้ร่วมกันทั้งแบบระบบหลักและ ON1) */
+function locate(g: Gray, hit: QrHit, t: SheetLayout): Located | ReadFailReason {
   // 1) ตำแหน่งคร่าว ๆ จาก QR (QR เล็ก จึงคาดตำแหน่งมุมไกล ๆ ได้หยาบ)
   const h0 = affineFromPoints(hit.points.map((p) => p.mm), hit.points.map((p) => p.px));
-  if (!h0) return fail('corners', qr);
+  if (!h0) return 'corners';
   const k = t.corner_marks.size;
   const markMm: Pt[] = t.corner_marks.top_left.map(([x, y]) => ({ x: x + k / 2, y: y + k / 2 }));
   const s0 = localScale(h0, { x: t.qr.x + t.qr.size / 2, y: t.qr.y + t.qr.size / 2 });
@@ -267,7 +302,7 @@ export function readSheet(g: Gray, opts: ReadOptions = {}): ReadResult {
     return cands.map((c) => ({ c, d: Math.hypot(c.x - p.x, c.y - p.y) }))
       .filter((o) => o.d < 60 * s0).sort((a, b) => a.d - b.d).slice(0, 4).map((o) => o.c);
   });
-  if (near.some((l) => !l.length)) return fail('corners', qr);
+  if (near.some((l) => !l.length)) return 'corners';
   const finders = hit.points.slice(0, 3);
   const fitErr = (H: H) => finders.reduce((a, p) => { const q = apply(H, p.mm); return a + Math.hypot(q.x - p.px.x, q.y - p.px.y); }, 0) / 3;
   let best: { combo: Cand[]; err: number } | null = null;
@@ -280,49 +315,101 @@ export function readSheet(g: Gray, opts: ReadOptions = {}): ReadResult {
     const err = fitErr(Hc);
     if (!best || err < best.err) best = { combo, err };
   }
-  if (!best) return fail('corners', qr);
+  if (!best) return 'corners';
   // 3) ปรับจุดศูนย์กลางมุมดำให้ละเอียดที่ความละเอียดเต็ม
   const coarseH = fromPoints(markMm, best.combo)!;
   const found = best.combo.map((c, i) => findMark(g, c, localScale(coarseH, markMm[i]), k, 6.5));
-  if (found.some((f) => !f)) return fail('corners', qr);
+  if (found.some((f) => !f)) return 'corners';
   const corners = found.map((f) => ({ x: f!.x, y: f!.y }));
   const H = fromPoints(markMm, corners);
-  if (!H) return fail('corners', qr);
+  if (!H) return 'corners';
 
   // ตรวจความสมเหตุสมผล: QR ที่อ่านได้ต้องอยู่ตรงตำแหน่งตามแบบกระดาษ
   const scale = localScale(H, { x: t.paper.width / 2, y: t.paper.height / 2 });
   const fitErrorMm = fitErr(H) / scale;
-  if (fitErrorMm > 3) return fail('corners', qr);
+  if (fitErrorMm > 3) return 'corners';
 
   // ระดับดำ/ขาวจากมุมดำ (สัดส่วน — ทนต่อแสงน้อย/เงา)
   const blackRatio = found.reduce((a, f) => a + f!.mean / Math.max(1, f!.white), 0) / 4;
   const contrast = 1 - blackRatio;
-  if (contrast < 0.3) return fail('low_contrast', qr);
+  if (contrast < 0.3) return 'low_contrast';
+  return { corners, H, scale, contrast, fitErrorMm };
+}
 
-  // 3) วัดความเข้มทุกวง
+/** วัดความเข้มของวงกลม 1 วง (จุดศูนย์กลาง มม., รัศมี มม.) → 0 = ขาวเท่ากระดาษ, 1 = ดำเท่ามุมดำ */
+function measureBubble(g: Gray, loc: Located, ctr: Pt, inner: Pt[], ring: Pt[]): number {
+  const H = loc.H;
+  // ความขาวอ้างอิงเฉพาะวงนี้: ระนาบความสว่างที่ฟิตจากวงแหวนรอบนอก (ทนต่อเงา/แสงไล่ระดับที่พาดผ่านวง)
+  const ringPts = ring.map((o) => { const p = apply(H, { x: ctr.x + o.x, y: ctr.y + o.y }); return { x: o.x, y: o.y, v: sample(g, p.x, p.y) }; });
+  const plane = fitPlane(ringPts);
+  let sum = 0;
+  for (const o of inner) {
+    const p = apply(H, { x: ctr.x + o.x, y: ctr.y + o.y });
+    const white = Math.max(1, plane[0] + plane[1] * o.x + plane[2] * o.y);
+    sum += Math.min(1.2, sample(g, p.x, p.y) / white);
+  }
+  const d = (1 - sum / inner.length) / Math.max(0.2, loc.contrast);
+  return Math.round(Math.min(1, Math.max(0, d)) * 1000) / 1000;
+}
+
+const diskCache = new Map<number, { inner: Pt[]; ring: Pt[] }>();
+function bubbleSampling(r: number) {
+  let v = diskCache.get(r);
+  if (!v) { v = { inner: diskOffsets(0, r * 0.62, 0.22), ring: diskOffsets(r + 0.55, r + 0.95, 0.2) }; diskCache.set(r, v); }
+  return v;
+}
+
+/** อ่านกระดาษคำตอบ 1 แผ่นจากภาพระดับเทา (แบบระบบหลัก IB1/IB2) */
+export function readSheet(g: Gray, opts: ReadOptions = {}): ReadResult {
+  const { hit, raw } = findQr(g, opts.qrFactors ?? qrFactors(g.w, g.h), opts.sharpen ?? !opts.qrFactors);
+  if (!hit) return fail(raw ? 'not_our_sheet' : 'no_qr');
+  if (hit.parsed.kind === 'onet') return fail('onet_sheet');
+  const qr = hit.parsed.qr;
+  if (!TEMPLATES[qr.template]) return fail('unknown_template', qr);
+  const t = getTemplate(qr.template);
+  const loc = locate(g, hit, t);
+  if (typeof loc === 'string') return fail(loc, qr);
+
+  // วัดความเข้มทุกวง
   const b = t.bubbles;
-  const inner = diskOffsets(0, b.radius * 0.62, 0.22);
-  const ring = diskOffsets(b.radius + 0.55, b.radius + 0.95, 0.2);
+  const { inner, ring } = bubbleSampling(b.radius);
   const darkness: number[][] = [];
   for (let n = 1; n <= b.capacity; n++) {
     const row: number[] = [];
-    for (let c = 1; c <= b.choices; c++) {
-      const ctr = bubbleCenter(t, n, c);
-      // ความขาวอ้างอิงเฉพาะวงนี้: ระนาบความสว่างที่ฟิตจากวงแหวนรอบนอก (ทนต่อเงา/แสงไล่ระดับที่พาดผ่านวง)
-      const ringPts = ring.map((o) => { const p = apply(H, { x: ctr.x + o.x, y: ctr.y + o.y }); return { x: o.x, y: o.y, v: sample(g, p.x, p.y) }; });
-      const plane = fitPlane(ringPts);
-      let sum = 0;
-      for (const o of inner) {
-        const p = apply(H, { x: ctr.x + o.x, y: ctr.y + o.y });
-        const white = Math.max(1, plane[0] + plane[1] * o.x + plane[2] * o.y);
-        sum += Math.min(1.2, sample(g, p.x, p.y) / white);
-      }
-      const d = (1 - sum / inner.length) / Math.max(0.2, contrast);
-      row.push(Math.round(Math.min(1, Math.max(0, d)) * 1000) / 1000);
-    }
+    for (let c = 1; c <= b.choices; c++) row.push(measureBubble(g, loc, bubbleCenter(t, n, c), inner, ring));
     darkness.push(row);
   }
-  return { ok: true, qr, corners, homography: H, darkness, quality: { scale, contrast, fitErrorMm } };
+  return { ok: true, qr, corners: loc.corners, homography: loc.H, darkness,
+    quality: { scale: loc.scale, contrast: loc.contrast, fitErrorMm: loc.fitErrorMm } };
+}
+
+const JITTER = [-0.6, 0, 0.6];
+
+/** อ่านกระดาษคำตอบ O-NET (ON1) 1 แผ่น — A4 แนวตั้ง 1 คนต่อแผ่น (SPEC-ONET §5) */
+export function readOnetSheet(g: Gray, opts: ReadOptions = {}): OnetReadResult {
+  // อัปโหลด (ไม่กำหนด qrFactors): ลองขยายภาพ 1.6 เท่าเป็นทางสุดท้าย — QR บน A4 ที่ถ่ายไกลมีโมดูลแค่ ~3 พิกเซล
+  //   ภาพใหญ่อยู่แล้ว (> 2000 พิกเซล) ไม่ขยาย — ช้าและกินหน่วยความจำ
+  const ups = (opts.qrUpscales ?? (opts.qrFactors ? [] : [1.6])).filter((u) => Math.max(g.w, g.h) * u <= 3200);
+  const { hit, raw } = findQr(g, opts.qrFactors ?? qrFactors(g.w, g.h, [1400, 0, 1000]), opts.sharpen ?? !opts.qrFactors, ups);
+  if (!hit) return failOnet(raw ? 'not_our_sheet' : 'no_qr');
+  if (hit.parsed.kind === 'ib') return failOnet('not_onet_sheet');
+  const qr = hit.parsed.qr;
+  const t = ONET_TEMPLATES[qr.template];
+  if (!t) return failOnet('unknown_template', qr);
+  const loc = locate(g, hit, t);
+  if (typeof loc === 'string') return failOnet(loc, qr);
+  // A4 ใหญ่กว่า A5 — กระดาษโค้ง/ยับทำให้ตำแหน่งวงกลางแผ่นคลาดจาก homography ได้เกือบ 1 มม.
+  // จึงวัดซ้ำรอบจุดที่คาด (±0.6 มม.) แล้วใช้ค่าเข้มสุด · ขอบเขตนี้ไม่ทำให้จุดวัดเลยเส้นขอบวง (วงในรัศมี 0.62r + 0.6 < r)
+  const darkness: Record<string, number> = {};
+  for (const b of on1AllBubbles(t)) {
+    const { inner, ring } = bubbleSampling(b.r);
+    let best = 0;
+    for (const dy of JITTER) for (const dx of JITTER)
+      best = Math.max(best, measureBubble(g, loc, { x: b.p.x + dx, y: b.p.y + dy }, inner, ring));
+    darkness[b.key] = best;
+  }
+  return { ok: true, qr, corners: loc.corners, homography: loc.H, darkness,
+    quality: { scale: loc.scale, contrast: loc.contrast, fitErrorMm: loc.fitErrorMm } };
 }
 
 /** ภาพหนึ่งอาจมีกระดาษคำตอบ 2 แผ่น (A4 แนวนอนที่ยังไม่ตัด) — แยกครึ่งซ้าย/ขวาแล้วอ่านทีละแผ่น */

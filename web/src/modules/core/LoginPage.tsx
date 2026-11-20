@@ -37,6 +37,7 @@ export function LoginPage() {
       <div className="card login">
         <h1>เข้าสู่ระบบ</h1>
         <p className="sub">ระบบคลังข้อสอบและตรวจข้อสอบ คณิตศาสตร์ ป.4–6</p>
+        <p className="hint" style={{ marginTop: -10 }}>ครูโรงเรียนอื่น: เข้าด้วยบัญชี Gmail เพื่อใช้ <b>ห้อง O-NET คณิต ป.6</b> (ฟรี 2 ชุด)</p>
         {repo.mode === 'supabase' && (
           <button className="btn" type="button" onClick={google} disabled={busy}>เข้าสู่ระบบด้วย Google</button>
         )}
@@ -57,7 +58,7 @@ export function LoginPage() {
           </form>
         )}
         {error && <div className="error" role="alert">{error}</div>}
-        {repo.mode === 'memory' && <div className="hint">โหมดสาธิต: demo@itembank.local / demo1234</div>}
+        {repo.mode === 'memory' && <div className="hint">โหมดสาธิต: demo@itembank.local / demo1234 · ครู O-NET: onet@itembank.local / demo1234</div>}
       </div>
     </main>
   );

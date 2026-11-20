@@ -6,6 +6,7 @@ import type {
   ScanSaveInput, ScanSaveResult, Settings, ClosedSummary, ClassroomCloseSummary, ClassroomCreateInput, ClassroomDetail, ClassroomSummary, ClassroomUpdateInput,
   GbColumn, GbColumnKind, ExamLink, GbOverrideReason, GbSheet,
 } from '../core/types';
+import { SupabaseOnet } from './onetSupabase';
 import { toDbPayload } from '../modules/assembly/payload';
 import type { BankHealth, CalibrationRun, ItemCalibrationInfo } from '../modules/calibration/calibrate';
 import { toBankHealth, toCalibrationRun, toItemCalibrationInfo } from '../modules/calibration/fromDb';
@@ -18,9 +19,11 @@ function must<T>(res: { data: T | null; error: { message: string } | null }): T 
 export class SupabaseRepo implements Repo {
   readonly mode = 'supabase' as const;
   private sb: SupabaseClient;
+  readonly onet: SupabaseOnet;
 
   constructor(url: string, anonKey: string) {
     this.sb = createClient(url, anonKey, { auth: { flowType: 'pkce', detectSessionInUrl: true } });
+    this.onet = new SupabaseOnet(this.sb);
   }
 
   async getAuth(): Promise<AuthState> {

@@ -6,7 +6,7 @@ import { ExpiryNotice } from '../analysis/expiry';
 import type { BankHealth } from '../calibration/calibrate';
 import { href } from '../../ui/router';
 
-const ROLE_TH: Record<string, string> = { owner: 'เจ้าของระบบ', admin: 'ผู้ดูแล', teacher: 'ครู' };
+const ROLE_TH: Record<string, string> = { owner: 'เจ้าของระบบ', admin: 'ผู้ดูแล', teacher: 'ครู', onet: 'ครู (ห้อง O-NET)' };
 
 export function HomePage({ profile }: { profile: Profile | null }) {
   const [sum, setSum] = useState<CoverageSummary | null>(null);

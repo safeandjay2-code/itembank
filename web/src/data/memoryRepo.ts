@@ -12,6 +12,7 @@ import type {
   ClassroomCloseSummary, ClassroomCreateInput, ClassroomDetail, ClassroomSummary, ClassroomUpdateInput, GbColumn, GbColumnKind, GbSettings, ExamLink,
   GbAttempt, GbOverrideReason, GbRetakeChoice, GbSheet,
 } from '../core/types';
+import { MemoryOnet, ONET_DEMO_EMAIL, type DemoUser } from './onetMemory';
 import { GRADEBOOK_DEFAULT_SETTINGS, effectiveSettings, gradebookDefaults } from '../modules/gradebook/plan';
 import { computeSheet } from '../modules/gradebook/sheet';
 import { analysisConfigFromSettings, analyze } from '../modules/analysis/analyze';
@@ -88,6 +89,12 @@ export class MemoryRepo implements Repo {
   private classrooms: MemClassroom[] = [];
   private classroomSeq = 0;
   private columnSeq = 0;
+  /** บัญชีสาธิต: เจ้าของระบบ + ครูที่สมัครเองด้วย Gmail (บทบาท onet) */
+  readonly demoUsers: DemoUser[] = [
+    { id: 'demo', email: DEMO_EMAIL, displayName: 'ผู้ใช้สาธิต', schoolName: 'โรงเรียนบ้านปางไฮ', role: 'owner', createdAt: '2026-10-01T00:00:00Z' },
+    { id: 'onet-demo', email: ONET_DEMO_EMAIL, displayName: 'ครูสาธิต O-NET', schoolName: 'โรงเรียนสาธิต', role: 'onet', createdAt: '2026-11-20T00:00:00Z' },
+  ];
+  readonly onet = new MemoryOnet(this.demoUsers, () => this.demoUsers.find((u) => this.auth.signedIn && u.email === this.auth.email) ?? null);
 
   /** samplePerCell = จำนวนข้อหุ่นต่อช่อง (ตัวชี้วัด × ระดับ) — เหมือน seed S900 */
   constructor(samplePerCell = 2) {
@@ -127,7 +134,7 @@ export class MemoryRepo implements Repo {
   private emit() { this.listeners.forEach((l) => l(this.auth)); }
 
   async signIn(email: string, password: string) {
-    if (email !== DEMO_EMAIL || password !== DEMO_PASSWORD) throw new Error('อีเมลหรือรหัสผ่านไม่ถูกต้อง');
+    if (!this.demoUsers.some((u) => u.email === email) || password !== DEMO_PASSWORD) throw new Error('อีเมลหรือรหัสผ่านไม่ถูกต้อง');
     this.auth = { signedIn: true, email };
     this.emit();
   }
@@ -137,7 +144,8 @@ export class MemoryRepo implements Repo {
   async signOut() { this.auth = { signedIn: false, email: null }; this.emit(); }
 
   async getProfile(): Promise<Profile | null> {
-    return this.auth.signedIn ? { id: 'demo', displayName: 'ผู้ใช้สาธิต', role: 'owner' } : null;
+    const u = this.auth.signedIn ? this.demoUsers.find((x) => x.email === this.auth.email) : null;
+    return u ? { id: u.id, displayName: u.displayName, role: u.role } : null;
   }
 
   // ---------- ข้อมูลอ้างอิง ----------

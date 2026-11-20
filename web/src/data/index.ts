@@ -1,6 +1,8 @@
 import type { Repo } from './repo';
 import { MemoryRepo } from './memoryRepo';
 import { SupabaseRepo } from './supabaseRepo';
+import { onetSheetSvg } from '../modules/print/onetSheetSvg';
+import { getOnetTemplate, on1AllBubbles } from '../modules/print/onetTemplate';
 
 // เลือกแหล่งข้อมูลจากค่าตั้งใน .env  (VITE_DATA_MODE=memory สำหรับโหมดสาธิต/ทดสอบ)
 function createRepo(): Repo {
@@ -20,5 +22,11 @@ if (repo instanceof MemoryRepo && typeof window !== 'undefined') {
     getExam: (id: string) => mem.getExam(id),
     saveScan: (examId: string, seatNo: number, setNo: number, answers: Array<number | null | 'multi'>, ambiguous: number[] = []) =>
       mem.saveScan({ examId, seatNo, setNo, answers: answers as any, ambiguous, source: 'manual', replace: true }),
+    /** กระดาษคำตอบ O-NET (ON1) + ตำแหน่งวง (มม.) ให้ชุดทดสอบฝนและถ่ายภาพจำลอง */
+    onetSheet: (setCode: string) => {
+      const t = getOnetTemplate(1);
+      return { svg: onetSheetSvg(t, { setCode, subtitle: `ชุดติว O-NET คณิตศาสตร์ ป.6 · ชุดที่ ${Number(setCode.slice(1))}` }),
+        paper: t.paper, bubbles: on1AllBubbles(t).map((b) => ({ key: b.key, x: b.p.x, y: b.p.y, r: b.r })) };
+    },
   };
 }

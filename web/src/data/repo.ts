@@ -7,6 +7,7 @@ import type {
   GbOverrideReason, GbSheet,
 } from '../core/types';
 import type { BankHealth, CalibrationRun, ItemCalibrationInfo } from '../modules/calibration/calibrate';
+import type { OnetApi } from '../modules/onet/types';
 
 export interface AuthState {
   signedIn: boolean;
@@ -15,6 +16,8 @@ export interface AuthState {
 
 export interface Repo {
   readonly mode: 'supabase' | 'memory';
+  /** ห้อง O-NET (SPEC-ONET) — RPC onet_* + ไฟล์ชุดติว */
+  readonly onet: OnetApi;
   getAuth(): Promise<AuthState>;
   onAuthChange(cb: (s: AuthState) => void): () => void;
   signIn(email: string, password: string): Promise<void>;

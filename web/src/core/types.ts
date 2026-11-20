@@ -1,7 +1,7 @@
 import type { FigureSpec } from '../modules/bank/figure/spec';
 import type { QualityFlag } from '../modules/calibration/calibrate';
 // ชนิดข้อมูลหลักของระบบ — ตรงกับตารางใน supabase/migrations
-export type Role = 'owner' | 'admin' | 'teacher';
+export type Role = 'owner' | 'admin' | 'teacher' | 'onet';
 
 export interface Profile {
   id: string;

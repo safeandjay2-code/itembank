@@ -9,9 +9,9 @@
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 DB=itembank_staging
-LIVE_LAST=${LIVE_LAST:-0014}   # migration ล่าสุดที่ติดตั้งบนระบบจริงแล้ว — แก้เลขนี้ทุกครั้งที่ปล่อยขึ้นระบบจริง
+LIVE_LAST=${LIVE_LAST:-0015}   # migration ล่าสุดที่ติดตั้งบนระบบจริงแล้ว — แก้เลขนี้ทุกครั้งที่ปล่อยขึ้นระบบจริง
 #   (0013 + 0014 ติดตั้งบนระบบจริง 18 พ.ย. 2569 — แก้สมุดคะแนนเปิดไม่ได้ · เกณฑ์รอยฝนปรับตามแผ่น)
-#   (ปล่อย 0011+0012 ขึ้นระบบจริง 22 ต.ค. 2569 · ซ้อมรอบนั้นซ้ำได้ด้วย LIVE_LAST=0010 bash tests/db/staging.sh upgrade)
+#   (ปล่อย 0015 ห้อง O-NET ขึ้นระบบจริง 22 พ.ย. 2569 · ปล่อย 0011+0012 ขึ้นระบบจริง 22 ต.ค. 2569 · ซ้อมรอบนั้นซ้ำได้ด้วย LIVE_LAST=0010 bash tests/db/staging.sh upgrade)
 PSQL=${PSQL:-"psql -v ON_ERROR_STOP=1 -X -q"}
 dropdb --if-exists $DB
 createdb $DB

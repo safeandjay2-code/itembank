@@ -20,14 +20,22 @@ export function SetTag({ isFree, usable }: { isFree: boolean; usable: boolean })
   return <span className="tag locked"><Icon name="lock" size={14} />ล็อก</span>;
 }
 
+/** แปลงลิงก์ https://… ในข้อความผู้ดูแลเป็นลิงก์กดได้ (เช่น ลิงก์แอดเพื่อน LINE) — ข้อความอื่นแสดงตามเดิม */
+export function Linkified({ text }: { text: string }) {
+  const parts = text.split(/(https:\/\/[^\s]+)/g);
+  return <>{parts.map((p, i) => (i % 2 === 1
+    ? <a key={i} href={p} target="_blank" rel="noopener noreferrer">{p}</a>
+    : p))}</>;
+}
+
 /** กล่องชุดที่ล็อก: ราคา + วิธีชำระเงิน/ส่งสลิป (ข้อความตั้งใน app_settings) */
 export function LockPanel({ cat, email }: { cat: OnetCatalog; email: string | null }) {
   return (
     <section className="card lock-panel" data-testid="lock-panel">
       <h2><Icon name="lock" size={22} />{cat.priceText || 'ชุดนี้ต้องปลดล็อกก่อนใช้งาน'}</h2>
       {cat.paymentText
-        ? <div className="pay-text" data-testid="payment-text">{cat.paymentText}</div>
-        : <p className="sub" style={{ margin: 0 }}>ช่องทางชำระเงินจะแจ้งเร็ว ๆ นี้ — ติดต่อครูวรวุฒิ เลาว้าง โรงเรียนบ้านปางไฮ</p>}
+        ? <div className="pay-text" data-testid="payment-text"><Linkified text={cat.paymentText} /></div>
+        : <p className="sub" style={{ margin: 0 }}>ช่องทางชำระเงินจะแจ้งเร็ว ๆ นี้ — ติดต่อครูวรวุฒิ เลาว้าง</p>}
       {email && <p className="hint">เมื่อโอนแล้ว ส่งสลิปพร้อมอีเมลบัญชีนี้: <b>{email}</b> — ผู้ดูแลจะปลดล็อกชุดที่เหลือทั้งหมดให้</p>}
     </section>
   );

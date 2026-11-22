@@ -18,6 +18,8 @@ test('เส้นทางเต็ม: ฟรี 2 ชุด → สแกน 
   await expect(page.getByTestId('set-S02')).toHaveAttribute('data-usable', 'true');
   await expect(page.getByTestId('set-S03')).toHaveAttribute('data-usable', 'false');
   await expect(page.getByTestId('lock-panel')).toContainText('onet@itembank.local');
+  // ลิงก์ในข้อความชำระเงิน (เช่น แอดเพื่อน LINE) กดได้ เปิดแท็บใหม่
+  await expect(page.getByTestId('payment-text').getByRole('link')).toHaveAttribute('href', 'https://line.me/R/ti/p/@demo');
 
   // ระบบหลักเข้าไม่ได้: ทุกเส้นทางพากลับห้อง O-NET
   for (const p of ['/#/items', '/#/exams/new', '/#/classes', '/#/onet/admin']) {

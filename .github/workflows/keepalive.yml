@@ -1,0 +1,23 @@
+# กัน Supabase แพ็กเกจฟรีหยุดโปรเจกต์ (pause) เมื่อไม่มีการใช้งาน 7 วัน
+# ทุก 3 วัน เรียก REST อ่านตารางอ้างอิง 1 ครั้ง (ใช้คีย์สาธารณะเดียวกับหน้าเว็บ · ผู้ไม่ล็อกอินได้ผลว่าง แต่ฐานข้อมูลถูกเรียกจริง)
+# GitHub รันตารางเวลาเฉพาะบนกิ่ง main · กดรันเองได้ที่แท็บ Actions → keep-alive → Run workflow
+name: keep-alive
+on:
+  schedule:
+    - cron: '17 3 */3 * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: เรียกฐานข้อมูล Supabase
+        run: |
+          set -a; . web/.env.production; set +a
+          code=$(curl -s -o /tmp/out.json -w '%{http_code}' \
+            -H "apikey: $VITE_SUPABASE_ANON_KEY" \
+            "$VITE_SUPABASE_URL/rest/v1/subjects?select=id&limit=1")
+          echo "HTTP $code"; head -c 200 /tmp/out.json; echo
+          test "$code" = "200"

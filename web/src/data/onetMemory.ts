@@ -50,7 +50,7 @@ export class MemoryOnet implements OnetApi {
   /** วันหมดอายุห้องใหม่ (ปรับได้ในชุดทดสอบ) */
   expireDate = '2027-03-31';
   priceText = 'ปลดล็อกชุดที่ 3–6';
-  paymentText = 'โอนพร้อมเพย์ (สาธิต) แล้วส่งสลิปให้ครูวรวุฒิ';
+  paymentText = 'โอนพร้อมเพย์ (สาธิต) แล้วส่งสลิปทาง LINE: https://line.me/R/ti/p/@demo';
 
   constructor(private users: DemoUser[], private current: () => DemoUser | null) {}
 
